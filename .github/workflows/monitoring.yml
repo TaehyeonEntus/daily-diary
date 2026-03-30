@@ -1,0 +1,35 @@
+name: Monitoring Deploy
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - 'monitoring/**'
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Copy monitoring config to server
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.MONITORING_HOST }}
+          username: ${{ secrets.MONITORING_USER }}
+          key: ${{ secrets.MONITORING_SSH_KEY }}
+          source: monitoring/
+          target: ~/
+          strip_components: 0
+
+      - name: Restart monitoring services
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.MONITORING_HOST }}
+          username: ${{ secrets.MONITORING_USER }}
+          key: ${{ secrets.MONITORING_SSH_KEY }}
+          script: |
+            cd ~/monitoring
+            docker compose up -d
+            docker compose restart prometheus
