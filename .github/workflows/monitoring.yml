@@ -5,6 +5,10 @@ on:
     branches: [ main ]
     paths:
       - 'monitoring/**'
+  pull_request:
+    branches: [ main ]
+    paths:
+      - 'monitoring/**'
 
 jobs:
   deploy:
