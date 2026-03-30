@@ -5,6 +5,10 @@ on:
     branches: [ main ]
     paths:
       - 'monitoring/**'
+  pull_request:
+    branches: [ main ]
+    paths:
+      - 'monitoring/**'
 
 jobs:
   deploy:
@@ -31,5 +35,5 @@ jobs:
           key: ${{ secrets.MONITORING_SSH_KEY }}
           script: |
             cd ~/monitoring
-            docker compose up -d
-            docker compose restart prometheus
+            sudo docker compose up -d
+            sudo docker compose restart prometheus
