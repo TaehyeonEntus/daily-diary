@@ -76,7 +76,7 @@ spring.jpa.hibernate.ddl-auto=create-drop
 ```bash
 curl -X POST http://localhost:8080/auth/signup \
   -H "Content-Type: application/json" \
-  -d '{"email":"test@test.com","password":"password123","nickname":"테스터"}'
+  -d '{"username":"testuser","password":"password123","nickname":"테스터"}'
 ```
 
 ### 로그인
@@ -84,7 +84,7 @@ curl -X POST http://localhost:8080/auth/signup \
 ```bash
 curl -X POST http://localhost:8080/auth/login \
   -H "Content-Type: application/json" \
-  -d '{"email":"test@test.com","password":"password123"}'
+  -d '{"username":"testuser","password":"password123"}'
 # → accessToken, refreshToken 수령
 ```
 
