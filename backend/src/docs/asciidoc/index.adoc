@@ -15,7 +15,7 @@
 
 ----
 http://localhost:8080
--'''
+----
 
 === 공통 응답 코드
 
@@ -44,7 +44,7 @@ http://localhost:8080
 | 리소스를 찾을 수 없음
 
 | 409 Conflict
-| 리소스 충돌 (예: 이메일 중복)
+| 리소스 충돌 (예: 아이디 중복)
 |===
 
 '''
@@ -83,21 +83,21 @@ include::{snippets}/auth/logout/http-response.adoc[]
 
 === 내 프로필 조회
 
-include::{snippets}/user/me-get/http-request.adoc[]
-include::{snippets}/user/me-get/http-response.adoc[]
-include::{snippets}/user/me-get/response-fields.adoc[]
+include::{snippets}/users/get-me/http-request.adoc[]
+include::{snippets}/users/get-me/http-response.adoc[]
+include::{snippets}/users/get-me/response-fields.adoc[]
 
 === 내 프로필 수정
 
-include::{snippets}/user/me-update/http-request.adoc[]
-include::{snippets}/user/me-update/request-fields.adoc[]
-include::{snippets}/user/me-update/http-response.adoc[]
-include::{snippets}/user/me-update/response-fields.adoc[]
+include::{snippets}/users/update-me/http-request.adoc[]
+include::{snippets}/users/update-me/request-fields.adoc[]
+include::{snippets}/users/update-me/http-response.adoc[]
+include::{snippets}/users/update-me/response-fields.adoc[]
 
 === 회원 탈퇴
 
-include::{snippets}/user/me-delete/http-request.adoc[]
-include::{snippets}/user/me-delete/http-response.adoc[]
+include::{snippets}/users/delete-me/http-request.adoc[]
+include::{snippets}/users/delete-me/http-response.adoc[]
 
 '''
 
@@ -105,31 +105,35 @@ include::{snippets}/user/me-delete/http-response.adoc[]
 
 === 게시글 목록 조회
 
-include::{snippets}/post/list/http-request.adoc[]
-include::{snippets}/post/list/http-response.adoc[]
-include::{snippets}/post/list/response-fields.adoc[]
+include::{snippets}/posts/list/http-request.adoc[]
+include::{snippets}/posts/list/query-parameters.adoc[]
+include::{snippets}/posts/list/http-response.adoc[]
+include::{snippets}/posts/list/response-fields.adoc[]
 
 === 게시글 단건 조회
 
-include::{snippets}/post/detail/http-request.adoc[]
-include::{snippets}/post/detail/http-response.adoc[]
-include::{snippets}/post/detail/response-fields.adoc[]
+include::{snippets}/posts/get/http-request.adoc[]
+include::{snippets}/posts/get/path-parameters.adoc[]
+include::{snippets}/posts/get/http-response.adoc[]
+include::{snippets}/posts/get/response-fields.adoc[]
 
 === 게시글 작성
 
-include::{snippets}/post/create/http-request.adoc[]
-include::{snippets}/post/create/request-fields.adoc[]
-include::{snippets}/post/create/http-response.adoc[]
-include::{snippets}/post/create/response-fields.adoc[]
+include::{snippets}/posts/create/http-request.adoc[]
+include::{snippets}/posts/create/request-fields.adoc[]
+include::{snippets}/posts/create/http-response.adoc[]
+include::{snippets}/posts/create/response-fields.adoc[]
 
 === 게시글 수정
 
-include::{snippets}/post/update/http-request.adoc[]
-include::{snippets}/post/update/request-fields.adoc[]
-include::{snippets}/post/update/http-response.adoc[]
-include::{snippets}/post/update/response-fields.adoc[]
+include::{snippets}/posts/update/http-request.adoc[]
+include::{snippets}/posts/update/path-parameters.adoc[]
+include::{snippets}/posts/update/request-fields.adoc[]
+include::{snippets}/posts/update/http-response.adoc[]
+include::{snippets}/posts/update/response-fields.adoc[]
 
 === 게시글 삭제
 
-include::{snippets}/post/delete/http-request.adoc[]
-include::{snippets}/post/delete/http-response.adoc[]
+include::{snippets}/posts/delete/http-request.adoc[]
+include::{snippets}/posts/delete/path-parameters.adoc[]
+include::{snippets}/posts/delete/http-response.adoc[]
