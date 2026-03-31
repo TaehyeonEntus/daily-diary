@@ -85,3 +85,10 @@ asciidoctor {
 	attributes 'snippets': snippetsDir
 	dependsOn test
 }
+
+bootJar {
+	dependsOn asciidoctor
+	from("${buildDir}/docs/asciidoc") {
+		into 'static/docs'
+	}
+}
