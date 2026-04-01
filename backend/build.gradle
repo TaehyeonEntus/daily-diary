@@ -28,6 +28,9 @@ ext {
 	snippetsDir = file('build/generated-snippets')
 }
 
+// Gradle 8+ configuration-time validation: directory must exist before asciidoctor is configured
+snippetsDir.mkdirs()
+
 dependencies {
 	implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
 	implementation 'org.springframework.boot:spring-boot-starter-security'

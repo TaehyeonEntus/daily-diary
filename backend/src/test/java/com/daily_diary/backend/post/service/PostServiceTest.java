@@ -1,0 +1,224 @@
+package com.daily_diary.backend.post.service;
+
+import com.daily_diary.backend.post.entity.Post;
+import com.daily_diary.backend.post.exception.PostAccessDeniedException;
+import com.daily_diary.backend.post.exception.PostNotFoundException;
+import com.daily_diary.backend.post.infra.PostRepository;
+import com.daily_diary.backend.post.web.CreatePostRequest;
+import com.daily_diary.backend.post.web.PostListResponse;
+import com.daily_diary.backend.post.web.PostResponse;
+import com.daily_diary.backend.post.web.UpdatePostRequest;
+import com.daily_diary.backend.user.entity.User;
+import com.daily_diary.backend.user.exception.UserNotFoundException;
+import com.daily_diary.backend.user.infra.UserRepository;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.test.util.ReflectionTestUtils;
+
+import java.util.List;
+import java.util.Optional;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.verify;
+
+@ExtendWith(MockitoExtension.class)
+class PostServiceTest {
+
+    @Mock
+    PostRepository postRepository;
+
+    @Mock
+    UserRepository userRepository;
+
+    @InjectMocks
+    PostService postService;
+
+    private User createUser(Long id, String nickname) {
+        User user = User.of("user" + id, "encoded", nickname);
+        ReflectionTestUtils.setField(user, "id", id);
+        return user;
+    }
+
+    private Post createPost(User user, String title, String content) {
+        return Post.of(title, content, user);
+    }
+
+    // ─── list ─────────────────────────────────────────────────────────────────
+
+    @Test
+    void list_정상() {
+        // given
+        User user = createUser(1L, "닉네임");
+        Post post = createPost(user, "제목", "내용");
+        given(postRepository.findAll(any(Pageable.class))).willReturn(new PageImpl<>(List.of(post)));
+
+        // when
+        PostListResponse response = postService.list(0, 10);
+
+        // then
+        assertThat(response.content()).hasSize(1);
+        assertThat(response.content().get(0).title()).isEqualTo("제목");
+    }
+
+    @Test
+    void list_정렬_createdAt_DESC() {
+        // given
+        given(postRepository.findAll(any(Pageable.class))).willReturn(Page.empty());
+
+        // when
+        postService.list(0, 10);
+
+        // then
+        ArgumentCaptor<Pageable> captor = ArgumentCaptor.forClass(Pageable.class);
+        verify(postRepository).findAll(captor.capture());
+        Sort.Order order = captor.getValue().getSort().getOrderFor("createdAt");
+        assertThat(order).isNotNull();
+        assertThat(order.getDirection()).isEqualTo(Sort.Direction.DESC);
+    }
+
+    // ─── getPost ──────────────────────────────────────────────────────────────
+
+    @Test
+    void getPost_정상() {
+        // given
+        User user = createUser(1L, "닉네임");
+        Post post = createPost(user, "제목", "내용");
+        given(postRepository.findById(1L)).willReturn(Optional.of(post));
+
+        // when
+        PostResponse response = postService.getPost(1L);
+
+        // then
+        assertThat(response.title()).isEqualTo("제목");
+        assertThat(response.content()).isEqualTo("내용");
+        assertThat(response.nickname()).isEqualTo("닉네임");
+    }
+
+    @Test
+    void getPost_없는_게시글_예외() {
+        // given
+        given(postRepository.findById(99L)).willReturn(Optional.empty());
+
+        // when & then
+        assertThatThrownBy(() -> postService.getPost(99L))
+                .isInstanceOf(PostNotFoundException.class);
+    }
+
+    // ─── create ───────────────────────────────────────────────────────────────
+
+    @Test
+    void create_정상() {
+        // given
+        User user = createUser(1L, "닉네임");
+        given(userRepository.findById(1L)).willReturn(Optional.of(user));
+
+        // when
+        postService.create(1L, new CreatePostRequest("제목", "내용"));
+
+        // then
+        ArgumentCaptor<Post> captor = ArgumentCaptor.forClass(Post.class);
+        verify(postRepository).save(captor.capture());
+        Post saved = captor.getValue();
+        assertThat(saved.getTitle()).isEqualTo("제목");
+        assertThat(saved.getContent()).isEqualTo("내용");
+        assertThat(saved.getUser()).isEqualTo(user);
+    }
+
+    @Test
+    void create_없는_사용자_예외() {
+        // given
+        given(userRepository.findById(99L)).willReturn(Optional.empty());
+
+        // when & then
+        assertThatThrownBy(() -> postService.create(99L, new CreatePostRequest("제목", "내용")))
+                .isInstanceOf(UserNotFoundException.class);
+    }
+
+    // ─── update ───────────────────────────────────────────────────────────────
+
+    @Test
+    void update_정상() {
+        // given
+        User user = createUser(1L, "닉네임");
+        Post post = createPost(user, "기존제목", "기존내용");
+        given(postRepository.findById(1L)).willReturn(Optional.of(post));
+
+        // when
+        PostResponse response = postService.update(1L, 1L, new UpdatePostRequest("수정제목", "수정내용"));
+
+        // then
+        assertThat(response.title()).isEqualTo("수정제목");
+        assertThat(response.content()).isEqualTo("수정내용");
+    }
+
+    @Test
+    void update_없는_게시글_예외() {
+        // given
+        given(postRepository.findById(99L)).willReturn(Optional.empty());
+
+        // when & then
+        assertThatThrownBy(() -> postService.update(1L, 99L, new UpdatePostRequest("제목", "내용")))
+                .isInstanceOf(PostNotFoundException.class);
+    }
+
+    @Test
+    void update_작성자_아닌_사용자_예외() {
+        // given
+        User owner = createUser(1L, "작성자");
+        Post post = createPost(owner, "제목", "내용");
+        given(postRepository.findById(1L)).willReturn(Optional.of(post));
+
+        // when & then
+        assertThatThrownBy(() -> postService.update(2L, 1L, new UpdatePostRequest("제목", "내용")))
+                .isInstanceOf(PostAccessDeniedException.class);
+    }
+
+    // ─── delete ───────────────────────────────────────────────────────────────
+
+    @Test
+    void delete_정상() {
+        // given
+        User user = createUser(1L, "닉네임");
+        Post post = createPost(user, "제목", "내용");
+        given(postRepository.findById(1L)).willReturn(Optional.of(post));
+
+        // when
+        postService.delete(1L, 1L);
+
+        // then
+        verify(postRepository).delete(post);
+    }
+
+    @Test
+    void delete_없는_게시글_예외() {
+        // given
+        given(postRepository.findById(99L)).willReturn(Optional.empty());
+
+        // when & then
+        assertThatThrownBy(() -> postService.delete(1L, 99L))
+                .isInstanceOf(PostNotFoundException.class);
+    }
+
+    @Test
+    void delete_작성자_아닌_사용자_예외() {
+        // given
+        User owner = createUser(1L, "작성자");
+        Post post = createPost(owner, "제목", "내용");
+        given(postRepository.findById(1L)).willReturn(Optional.of(post));
+
+        // when & then
+        assertThatThrownBy(() -> postService.delete(2L, 1L))
+                .isInstanceOf(PostAccessDeniedException.class);
+    }
+}

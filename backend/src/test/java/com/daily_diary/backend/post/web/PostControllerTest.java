@@ -1,5 +1,6 @@
 package com.daily_diary.backend.post.web;
 
+import com.daily_diary.backend.global.security.CustomUserDetailsService;
 import com.daily_diary.backend.global.security.JwtProvider;
 import com.daily_diary.backend.global.security.SecurityConfig;
 import com.daily_diary.backend.post.service.PostService;
@@ -10,6 +11,7 @@ import org.springframework.boot.test.autoconfigure.restdocs.AutoConfigureRestDoc
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
+import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
@@ -29,6 +31,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 @WebMvcTest(PostController.class)
 @Import(SecurityConfig.class)
+@ActiveProfiles("test")
 @AutoConfigureRestDocs
 class PostControllerTest {
 
@@ -44,7 +47,15 @@ class PostControllerTest {
     @MockitoBean
     JwtProvider jwtProvider;
 
+    @MockitoBean
+    CustomUserDetailsService userDetailsService;
+
     private static final LocalDateTime NOW = LocalDateTime.of(2026, 3, 31, 12, 0, 0);
+
+    private void mockAuthUser() {
+        given(jwtProvider.validate("access-token")).willReturn(true);
+        given(jwtProvider.getUserId("access-token")).willReturn(1L);
+    }
 
     @Test
     void list() throws Exception {
@@ -102,38 +113,26 @@ class PostControllerTest {
 
     @Test
     void create() throws Exception {
-        PostResponse response = new PostResponse(2L, "제목", "내용", "홍길동", NOW, NOW);
-        given(jwtProvider.validate("access-token")).willReturn(true);
-        given(jwtProvider.getUserId("access-token")).willReturn(1L);
-        given(postService.create(eq(1L), any())).willReturn(response);
+        mockAuthUser();
+        willDoNothing().given(postService).create(eq(1L), any());
 
         mockMvc.perform(post("/posts")
                         .header("Authorization", "Bearer access-token")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(new CreatePostRequest("제목", "내용"))))
                 .andExpect(status().isCreated())
-                .andExpect(jsonPath("$.id").value(2L))
                 .andDo(document("posts/create",
                         requestFields(
                                 fieldWithPath("title").description("제목"),
                                 fieldWithPath("content").description("내용")
-                        ),
-                        responseFields(
-                                fieldWithPath("id").description("게시글 ID"),
-                                fieldWithPath("title").description("제목"),
-                                fieldWithPath("content").description("내용"),
-                                fieldWithPath("nickname").description("작성자 닉네임"),
-                                fieldWithPath("createdAt").description("작성 일시"),
-                                fieldWithPath("updatedAt").description("수정 일시")
                         )
                 ));
     }
 
     @Test
     void update() throws Exception {
+        mockAuthUser();
         PostResponse response = new PostResponse(1L, "수정된 제목", "수정된 내용", "홍길동", NOW, NOW);
-        given(jwtProvider.validate("access-token")).willReturn(true);
-        given(jwtProvider.getUserId("access-token")).willReturn(1L);
         given(postService.update(eq(1L), eq(1L), any())).willReturn(response);
 
         mockMvc.perform(patch("/posts/{id}", 1L)
@@ -163,8 +162,7 @@ class PostControllerTest {
 
     @Test
     void deletePost() throws Exception {
-        given(jwtProvider.validate("access-token")).willReturn(true);
-        given(jwtProvider.getUserId("access-token")).willReturn(1L);
+        mockAuthUser();
         willDoNothing().given(postService).delete(1L, 1L);
 
         mockMvc.perform(delete("/posts/{id}", 1L)

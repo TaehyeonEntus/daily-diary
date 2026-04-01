@@ -45,10 +45,6 @@ public class JwtProvider {
         }
     }
 
-    public long getRefreshTokenExpiry() {
-        return refreshTokenExpiry;
-    }
-
     public Long getUserId(String token) {
         return getClaims(token).get("userId", Long.class);
     }
