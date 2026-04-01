@@ -1,5 +1,6 @@
 package com.daily_diary.backend.post.web;
 
+import com.daily_diary.backend.global.security.CustomUserDetails;
 import com.daily_diary.backend.post.service.PostService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -17,7 +18,7 @@ public class PostController {
     @GetMapping
     public ResponseEntity<PostListResponse> list(
             @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "10") int size) {
+            @RequestParam(defaultValue = "20") int size) {
         return ResponseEntity.ok(postService.list(page, size));
     }
 
@@ -27,22 +28,23 @@ public class PostController {
     }
 
     @PostMapping
-    public ResponseEntity<PostResponse> create(@AuthenticationPrincipal Long userId,
-                                                @Valid @RequestBody CreatePostRequest request) {
-        return ResponseEntity.status(201).body(postService.create(userId, request));
+    public ResponseEntity<Void> create(@AuthenticationPrincipal CustomUserDetails userDetails,
+                                        @Valid @RequestBody CreatePostRequest request) {
+        postService.create(userDetails.userId(), request);
+        return ResponseEntity.status(201).build();
     }
 
     @PatchMapping("/{id}")
-    public ResponseEntity<PostResponse> update(@AuthenticationPrincipal Long userId,
+    public ResponseEntity<PostResponse> update(@AuthenticationPrincipal CustomUserDetails userDetails,
                                                 @PathVariable Long id,
                                                 @Valid @RequestBody UpdatePostRequest request) {
-        return ResponseEntity.ok(postService.update(userId, id, request));
+        return ResponseEntity.ok(postService.update(userDetails.userId(), id, request));
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> delete(@AuthenticationPrincipal Long userId,
+    public ResponseEntity<Void> delete(@AuthenticationPrincipal CustomUserDetails userDetails,
                                         @PathVariable Long id) {
-        postService.delete(userId, id);
+        postService.delete(userDetails.userId(), id);
         return ResponseEntity.noContent().build();
     }
 }

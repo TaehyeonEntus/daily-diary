@@ -1,11 +1,12 @@
 package com.daily_diary.backend.user.service;
 
+import com.daily_diary.backend.user.entity.User;
 import com.daily_diary.backend.user.exception.UserNotFoundException;
 import com.daily_diary.backend.user.infra.UserRepository;
-import com.daily_diary.backend.user.web.UserResponse;
-import com.daily_diary.backend.user.web.UserUpdateRequest;
+import com.daily_diary.backend.user.web.UserDetailResponse;
+import com.daily_diary.backend.user.web.UserNicknameUpdateRequest;
+import com.github.benmanes.caffeine.cache.Cache;
 import lombok.RequiredArgsConstructor;
-import org.springframework.cache.CacheManager;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -14,30 +15,28 @@ import org.springframework.transaction.annotation.Transactional;
 @Transactional(readOnly = true)
 public class UserService {
 
-    private static final String REFRESH_TOKEN_CACHE = "refreshTokens";
-
     private final UserRepository userRepository;
-    private final CacheManager cacheManager;
+    private final Cache<Long, String> refreshTokenCache;
 
-    public UserResponse getMe(Long userId) {
+    public UserDetailResponse getMe(Long userId) {
         return userRepository.findById(userId)
-                .map(UserResponse::from)
+                .map(UserDetailResponse::from)
                 .orElseThrow(UserNotFoundException::new);
     }
 
     @Transactional
-    public UserResponse updateMe(Long userId, UserUpdateRequest request) {
-        var user = userRepository.findById(userId)
+    public UserDetailResponse updateMe(Long userId, UserNicknameUpdateRequest request) {
+        User user = userRepository.findById(userId)
                 .orElseThrow(UserNotFoundException::new);
         user.changeNickname(request.nickname());
-        return UserResponse.from(user);
+        return UserDetailResponse.from(user);
     }
 
     @Transactional
     public void deleteMe(Long userId) {
-        var user = userRepository.findById(userId)
+        User user = userRepository.findById(userId)
                 .orElseThrow(UserNotFoundException::new);
+        refreshTokenCache.invalidate(userId);
         userRepository.delete(user);
-        cacheManager.getCache(REFRESH_TOKEN_CACHE).evict(userId);
     }
 }

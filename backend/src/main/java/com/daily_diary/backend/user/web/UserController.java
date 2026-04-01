@@ -1,5 +1,6 @@
 package com.daily_diary.backend.user.web;
 
+import com.daily_diary.backend.global.security.CustomUserDetails;
 import com.daily_diary.backend.user.service.UserService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -15,19 +16,19 @@ public class UserController {
     private final UserService userService;
 
     @GetMapping
-    public ResponseEntity<UserResponse> getMe(@AuthenticationPrincipal Long userId) {
-        return ResponseEntity.ok(userService.getMe(userId));
+    public ResponseEntity<UserDetailResponse> getMe(@AuthenticationPrincipal CustomUserDetails userDetails) {
+        return ResponseEntity.ok(userService.getMe(userDetails.userId()));
     }
 
     @PatchMapping
-    public ResponseEntity<UserResponse> updateMe(@AuthenticationPrincipal Long userId,
-                                                  @Valid @RequestBody UserUpdateRequest request) {
-        return ResponseEntity.ok(userService.updateMe(userId, request));
+    public ResponseEntity<UserDetailResponse> updateMe(@AuthenticationPrincipal CustomUserDetails userDetails,
+                                                       @Valid @RequestBody UserNicknameUpdateRequest request) {
+        return ResponseEntity.ok(userService.updateMe(userDetails.userId(), request));
     }
 
     @DeleteMapping
-    public ResponseEntity<Void> deleteMe(@AuthenticationPrincipal Long userId) {
-        userService.deleteMe(userId);
+    public ResponseEntity<Void> deleteMe(@AuthenticationPrincipal CustomUserDetails userDetails) {
+        userService.deleteMe(userDetails.userId());
         return ResponseEntity.noContent().build();
     }
 }

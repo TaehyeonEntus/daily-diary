@@ -1,5 +1,6 @@
 package com.daily_diary.backend.user.web;
 
+import com.daily_diary.backend.global.security.CustomUserDetailsService;
 import com.daily_diary.backend.global.security.JwtProvider;
 import com.daily_diary.backend.global.security.SecurityConfig;
 import com.daily_diary.backend.user.service.UserService;
@@ -10,6 +11,7 @@ import org.springframework.boot.test.autoconfigure.restdocs.AutoConfigureRestDoc
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
+import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
@@ -27,6 +29,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 @WebMvcTest(UserController.class)
 @Import(SecurityConfig.class)
+@ActiveProfiles("test")
 @AutoConfigureRestDocs
 class UserControllerTest {
 
@@ -42,11 +45,18 @@ class UserControllerTest {
     @MockitoBean
     JwtProvider jwtProvider;
 
-    @Test
-    void getMe() throws Exception {
-        UserResponse response = new UserResponse(1L, "testuser", "테스터", LocalDateTime.now());
+    @MockitoBean
+    CustomUserDetailsService userDetailsService;
+
+    private void mockAuthUser() {
         given(jwtProvider.validate("access-token")).willReturn(true);
         given(jwtProvider.getUserId("access-token")).willReturn(1L);
+    }
+
+    @Test
+    void getMe() throws Exception {
+        mockAuthUser();
+        UserDetailResponse response = new UserDetailResponse(1L, "testuser", "테스터", LocalDateTime.now());
         given(userService.getMe(1L)).willReturn(response);
 
         mockMvc.perform(get("/users/me")
@@ -66,15 +76,14 @@ class UserControllerTest {
 
     @Test
     void updateMe() throws Exception {
-        UserResponse response = new UserResponse(1L, "testuser", "새닉네임", LocalDateTime.now());
-        given(jwtProvider.validate("access-token")).willReturn(true);
-        given(jwtProvider.getUserId("access-token")).willReturn(1L);
+        mockAuthUser();
+        UserDetailResponse response = new UserDetailResponse(1L, "testuser", "새닉네임", LocalDateTime.now());
         given(userService.updateMe(eq(1L), any())).willReturn(response);
 
         mockMvc.perform(patch("/users/me")
                         .header("Authorization", "Bearer access-token")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(new UserUpdateRequest("새닉네임"))))
+                        .content(objectMapper.writeValueAsString(new UserNicknameUpdateRequest("새닉네임"))))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.nickname").value("새닉네임"))
                 .andDo(document("users/update-me",
@@ -92,8 +101,7 @@ class UserControllerTest {
 
     @Test
     void deleteMe() throws Exception {
-        given(jwtProvider.validate("access-token")).willReturn(true);
-        given(jwtProvider.getUserId("access-token")).willReturn(1L);
+        mockAuthUser();
         willDoNothing().given(userService).deleteMe(1L);
 
         mockMvc.perform(delete("/users/me")
