@@ -42,3 +42,25 @@ out/
 ### Claude Code ###
 .git-workflow/
 .claude/settings.local.json
+/.claude/commands/speckit.analyze.md
+/.claude/commands/speckit.checklist.md
+/.claude/commands/speckit.clarify.md
+/.claude/commands/speckit.constitution.md
+/.claude/commands/speckit.implement.md
+/.claude/commands/speckit.plan.md
+/.claude/commands/speckit.specify.md
+/.claude/commands/speckit.tasks.md
+/.claude/commands/speckit.taskstoissues.md
+/.specify/memory/constitution.md
+/.specify/scripts/powershell/check-prerequisites.ps1
+/.specify/scripts/powershell/common.ps1
+/.specify/scripts/powershell/create-new-feature.ps1
+/.specify/scripts/powershell/setup-plan.ps1
+/.specify/scripts/powershell/update-agent-context.ps1
+/.specify/templates/agent-file-template.md
+/.specify/templates/checklist-template.md
+/.specify/templates/constitution-template.md
+/.specify/templates/plan-template.md
+/.specify/templates/spec-template.md
+/.specify/templates/tasks-template.md
+/.specify/init-options.json

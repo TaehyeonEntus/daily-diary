@@ -26,18 +26,18 @@ public class AuthController {
     private long refreshTokenExpiry;
 
     @PostMapping("/signup")
-    public ResponseEntity<Void> signup(@RequestBody @Valid SignupRequest request) {
+    public ResponseEntity<Void> signup(
+            @RequestBody @Valid SignupRequest request) {
         authService.signup(request);
         return ResponseEntity.status(HttpStatus.CREATED).build();
     }
 
     @PostMapping("/login")
-    public ResponseEntity<LoginResponse> login(@RequestBody @Valid LoginRequest request) {
+    public ResponseEntity<LoginResponse> login(
+            @RequestBody @Valid LoginRequest request) {
         Tokens result = authService.login(request);
-        ResponseCookie refreshCookie = buildRefreshTokenCookie(result.refreshToken());
-
         return ResponseEntity.ok()
-                .header(HttpHeaders.SET_COOKIE, refreshCookie.toString())
+                .header(HttpHeaders.SET_COOKIE, buildRefreshTokenCookie(result.refreshToken()).toString())
                 .body(new LoginResponse(result.accessToken()));
     }
 
@@ -45,17 +45,15 @@ public class AuthController {
     public ResponseEntity<RefreshResponse> refresh(
             @CookieValue("refreshToken") String refreshToken) {
         Tokens result = authService.refresh(refreshToken);
-        ResponseCookie refreshCookie = buildRefreshTokenCookie(result.refreshToken());
-
         return ResponseEntity.ok()
-                .header(HttpHeaders.SET_COOKIE, refreshCookie.toString())
+                .header(HttpHeaders.SET_COOKIE, buildRefreshTokenCookie(result.refreshToken()).toString())
                 .body(new RefreshResponse(result.accessToken()));
     }
 
     @DeleteMapping("/logout")
-    public ResponseEntity<Void> logout(@AuthenticationPrincipal CustomUserDetails userDetails) {
+    public ResponseEntity<Void> logout(
+            @AuthenticationPrincipal CustomUserDetails userDetails) {
         authService.logout(userDetails.userId());
-
         return ResponseEntity.noContent()
                 .header(HttpHeaders.SET_COOKIE, buildExpiredTokenCookie().toString())
                 .build();

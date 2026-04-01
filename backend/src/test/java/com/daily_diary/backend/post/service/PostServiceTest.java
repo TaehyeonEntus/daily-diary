@@ -1,12 +1,16 @@
 package com.daily_diary.backend.post.service;
 
 import com.daily_diary.backend.post.entity.Post;
+import com.daily_diary.backend.post.entity.PostLike;
+import com.daily_diary.backend.post.exception.LikeAlreadyExistsException;
+import com.daily_diary.backend.post.exception.LikeNotFoundException;
 import com.daily_diary.backend.post.exception.PostAccessDeniedException;
 import com.daily_diary.backend.post.exception.PostNotFoundException;
+import com.daily_diary.backend.post.infra.PostLikeRepository;
 import com.daily_diary.backend.post.infra.PostRepository;
 import com.daily_diary.backend.post.web.CreatePostRequest;
 import com.daily_diary.backend.post.web.PostListResponse;
-import com.daily_diary.backend.post.web.PostResponse;
+import com.daily_diary.backend.post.web.PostDetailResponse;
 import com.daily_diary.backend.post.web.UpdatePostRequest;
 import com.daily_diary.backend.user.entity.User;
 import com.daily_diary.backend.user.exception.UserNotFoundException;
@@ -34,6 +38,8 @@ import static org.mockito.Mockito.verify;
 
 @ExtendWith(MockitoExtension.class)
 class PostServiceTest {
+    @InjectMocks
+    PostService postService;
 
     @Mock
     PostRepository postRepository;
@@ -41,8 +47,9 @@ class PostServiceTest {
     @Mock
     UserRepository userRepository;
 
-    @InjectMocks
-    PostService postService;
+    @Mock
+    PostLikeRepository postLikeRepository;
+
 
     private User createUser(Long id, String nickname) {
         User user = User.of("user" + id, "encoded", nickname);
@@ -90,19 +97,33 @@ class PostServiceTest {
     // ─── getPost ──────────────────────────────────────────────────────────────
 
     @Test
-    void getPost_정상() {
+    void getPost_정상_비인증() {
         // given
         User user = createUser(1L, "닉네임");
         Post post = createPost(user, "제목", "내용");
         given(postRepository.findById(1L)).willReturn(Optional.of(post));
 
         // when
-        PostResponse response = postService.getPost(1L);
+        PostDetailResponse response = postService.getPost(1L, null);
 
         // then
         assertThat(response.title()).isEqualTo("제목");
-        assertThat(response.content()).isEqualTo("내용");
-        assertThat(response.nickname()).isEqualTo("닉네임");
+        assertThat(response.likedByMe()).isFalse();
+    }
+
+    @Test
+    void getPost_좋아요_누른_경우_likedByMe_true() {
+        // given
+        User user = createUser(1L, "닉네임");
+        Post post = createPost(user, "제목", "내용");
+        given(postRepository.findById(1L)).willReturn(Optional.of(post));
+        given(postLikeRepository.existsByPostIdAndUserId(1L, 1L)).willReturn(true);
+
+        // when
+        PostDetailResponse response = postService.getPost(1L, 1L);
+
+        // then
+        assertThat(response.likedByMe()).isTrue();
     }
 
     @Test
@@ -111,7 +132,7 @@ class PostServiceTest {
         given(postRepository.findById(99L)).willReturn(Optional.empty());
 
         // when & then
-        assertThatThrownBy(() -> postService.getPost(99L))
+        assertThatThrownBy(() -> postService.getPost(99L, null))
                 .isInstanceOf(PostNotFoundException.class);
     }
 
@@ -155,7 +176,7 @@ class PostServiceTest {
         given(postRepository.findById(1L)).willReturn(Optional.of(post));
 
         // when
-        PostResponse response = postService.update(1L, 1L, new UpdatePostRequest("수정제목", "수정내용"));
+        PostDetailResponse response = postService.update(1L, 1L, new UpdatePostRequest("수정제목", "수정내용"));
 
         // then
         assertThat(response.title()).isEqualTo("수정제목");
@@ -220,5 +241,76 @@ class PostServiceTest {
         // when & then
         assertThatThrownBy(() -> postService.delete(2L, 1L))
                 .isInstanceOf(PostAccessDeniedException.class);
+    }
+
+    // ─── like ─────────────────────────────────────────────────────────────────
+
+    @Test
+    void like_정상() {
+        // given
+        User user = createUser(1L, "닉네임");
+        Post post = createPost(user, "제목", "내용");
+        given(postRepository.findById(1L)).willReturn(Optional.of(post));
+        given(userRepository.findById(1L)).willReturn(Optional.of(user));
+        given(postLikeRepository.existsByPostIdAndUserId(1L, 1L)).willReturn(false);
+
+        // when
+        postService.like(1L, 1L);
+
+        // then
+        verify(postLikeRepository).save(any(PostLike.class));
+        verify(postRepository).increaseLikeCount(1L);
+    }
+
+    @Test
+    void like_없는_게시글_예외() {
+        // given
+        given(postRepository.findById(99L)).willReturn(Optional.empty());
+
+        // when & then
+        assertThatThrownBy(() -> postService.like(1L, 99L))
+                .isInstanceOf(PostNotFoundException.class);
+    }
+
+    @Test
+    void like_이미_좋아요_예외() {
+        // given
+        User user = createUser(1L, "닉네임");
+        Post post = createPost(user, "제목", "내용");
+        given(postRepository.findById(1L)).willReturn(Optional.of(post));
+        given(userRepository.findById(1L)).willReturn(Optional.of(user));
+        given(postLikeRepository.existsByPostIdAndUserId(1L, 1L)).willReturn(true);
+
+        // when & then
+        assertThatThrownBy(() -> postService.like(1L, 1L))
+                .isInstanceOf(LikeAlreadyExistsException.class);
+    }
+
+    // ─── unlike ───────────────────────────────────────────────────────────────
+
+    @Test
+    void unlike_정상() {
+        // given
+        User user = createUser(1L, "닉네임");
+        Post post = createPost(user, "제목", "내용");
+        PostLike postLike = PostLike.of(post, user);
+        given(postLikeRepository.findByPostIdAndUserId(1L, 1L)).willReturn(Optional.of(postLike));
+
+        // when
+        postService.unlike(1L, 1L);
+
+        // then
+        verify(postLikeRepository).delete(postLike);
+        verify(postRepository).decreaseLikeCount(1L);
+    }
+
+    @Test
+    void unlike_좋아요_없음_예외() {
+        // given
+        given(postLikeRepository.findByPostIdAndUserId(1L, 1L)).willReturn(Optional.empty());
+
+        // when & then
+        assertThatThrownBy(() -> postService.unlike(1L, 1L))
+                .isInstanceOf(LikeNotFoundException.class);
     }
 }

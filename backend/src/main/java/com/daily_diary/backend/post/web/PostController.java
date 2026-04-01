@@ -23,28 +23,50 @@ public class PostController {
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<PostResponse> getPost(@PathVariable Long id) {
-        return ResponseEntity.ok(postService.getPost(id));
+    public ResponseEntity<PostDetailResponse> getPost(
+            @AuthenticationPrincipal CustomUserDetails userDetails,
+            @PathVariable Long id) {
+        Long userId = userDetails != null ? userDetails.userId() : null;
+        return ResponseEntity.ok(postService.getPost(id, userId));
     }
 
     @PostMapping
-    public ResponseEntity<Void> create(@AuthenticationPrincipal CustomUserDetails userDetails,
-                                        @Valid @RequestBody CreatePostRequest request) {
+    public ResponseEntity<Void> create(
+            @AuthenticationPrincipal CustomUserDetails userDetails,
+            @Valid @RequestBody CreatePostRequest request) {
         postService.create(userDetails.userId(), request);
         return ResponseEntity.status(201).build();
     }
 
     @PatchMapping("/{id}")
-    public ResponseEntity<PostResponse> update(@AuthenticationPrincipal CustomUserDetails userDetails,
-                                                @PathVariable Long id,
-                                                @Valid @RequestBody UpdatePostRequest request) {
+    public ResponseEntity<PostDetailResponse> update(
+            @AuthenticationPrincipal CustomUserDetails userDetails,
+            @PathVariable Long id,
+            @Valid @RequestBody UpdatePostRequest request) {
         return ResponseEntity.ok(postService.update(userDetails.userId(), id, request));
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> delete(@AuthenticationPrincipal CustomUserDetails userDetails,
-                                        @PathVariable Long id) {
+    public ResponseEntity<Void> delete(
+            @AuthenticationPrincipal CustomUserDetails userDetails,
+            @PathVariable Long id) {
         postService.delete(userDetails.userId(), id);
+        return ResponseEntity.noContent().build();
+    }
+
+    @PostMapping("/{id}/likes")
+    public ResponseEntity<Void> like(
+            @AuthenticationPrincipal CustomUserDetails userDetails,
+            @PathVariable Long id) {
+        postService.like(userDetails.userId(), id);
+        return ResponseEntity.status(201).build();
+    }
+
+    @DeleteMapping("/{id}/likes")
+    public ResponseEntity<Void> unlike(
+            @AuthenticationPrincipal CustomUserDetails userDetails,
+            @PathVariable Long id) {
+        postService.unlike(userDetails.userId(), id);
         return ResponseEntity.noContent().build();
     }
 }
