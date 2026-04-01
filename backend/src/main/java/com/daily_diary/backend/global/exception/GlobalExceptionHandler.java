@@ -2,6 +2,8 @@ package com.daily_diary.backend.global.exception;
 
 import com.daily_diary.backend.auth.exception.InvalidCredentialsException;
 import com.daily_diary.backend.auth.exception.InvalidTokenException;
+import com.daily_diary.backend.post.exception.LikeAlreadyExistsException;
+import com.daily_diary.backend.post.exception.LikeNotFoundException;
 import com.daily_diary.backend.post.exception.PostAccessDeniedException;
 import com.daily_diary.backend.post.exception.PostNotFoundException;
 import com.daily_diary.backend.user.exception.DuplicateUsernameException;
@@ -41,6 +43,16 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(PostAccessDeniedException.class)
     public ResponseEntity<Map<String, String>> handlePostAccessDenied(PostAccessDeniedException e) {
         return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Map.of("message", e.getMessage()));
+    }
+
+    @ExceptionHandler(LikeAlreadyExistsException.class)
+    public ResponseEntity<Map<String, String>> handleAlreadyLiked(LikeAlreadyExistsException e) {
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(Map.of("message", e.getMessage()));
+    }
+
+    @ExceptionHandler(LikeNotFoundException.class)
+    public ResponseEntity<Map<String, String>> handleLikeNotFound(LikeNotFoundException e) {
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("message", e.getMessage()));
     }
 
     @ExceptionHandler(DuplicateUsernameException.class)

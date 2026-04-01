@@ -1,9 +1,17 @@
 package com.daily_diary.backend.post.infra;
 
 import com.daily_diary.backend.post.entity.Post;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
 public interface PostRepository extends JpaRepository<Post, Long> {
+    @Modifying
+    @Query("update Post p set p.likeCount = p.likeCount + 1 where p.id = :id")
+    void increaseLikeCount(@Param("id") Long postId);
+
+    @Modifying
+    @Query("update Post p set p.likeCount = p.likeCount - 1 where p.id = :id")
+    void decreaseLikeCount(@Param("id") Long postId);
 }

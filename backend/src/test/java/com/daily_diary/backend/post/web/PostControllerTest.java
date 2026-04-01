@@ -25,6 +25,7 @@ import static org.mockito.BDDMockito.willDoNothing;
 import static org.springframework.restdocs.mockmvc.MockMvcRestDocumentation.document;
 import static org.springframework.restdocs.payload.PayloadDocumentation.*;
 import static org.springframework.restdocs.request.RequestDocumentation.*;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -60,7 +61,7 @@ class PostControllerTest {
     @Test
     void list() throws Exception {
         PostListResponse response = new PostListResponse(
-                List.of(new PostSummaryResponse(1L, "첫 번째 게시글", "홍길동", NOW)),
+                List.of(new PostSummaryResponse(1L, "첫 번째 게시글", "홍길동", 3L, NOW)),
                 0, 10, 1L, 1
         );
         given(postService.list(0, 10)).willReturn(response);
@@ -79,6 +80,7 @@ class PostControllerTest {
                                 fieldWithPath("content[].id").description("게시글 ID"),
                                 fieldWithPath("content[].title").description("제목"),
                                 fieldWithPath("content[].nickname").description("작성자 닉네임"),
+                                fieldWithPath("content[].likeCount").description("좋아요 수"),
                                 fieldWithPath("content[].createdAt").description("작성 일시"),
                                 fieldWithPath("page").description("현재 페이지 번호"),
                                 fieldWithPath("size").description("페이지 크기"),
@@ -90,10 +92,12 @@ class PostControllerTest {
 
     @Test
     void getPost() throws Exception {
-        PostResponse response = new PostResponse(1L, "첫 번째 게시글", "내용입니다.", "홍길동", NOW, NOW);
-        given(postService.getPost(1L)).willReturn(response);
+        mockAuthUser();
+        PostDetailResponse response = new PostDetailResponse(1L, "첫 번째 게시글", "내용입니다.", "홍길동", 5L, true, NOW, NOW);
+        given(postService.getPost(eq(1L), eq(1L))).willReturn(response);
 
-        mockMvc.perform(get("/posts/{id}", 1L))
+        mockMvc.perform(get("/posts/{id}", 1L)
+                        .header("Authorization", "Bearer access-token"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value(1L))
                 .andDo(document("posts/get",
@@ -105,6 +109,8 @@ class PostControllerTest {
                                 fieldWithPath("title").description("제목"),
                                 fieldWithPath("content").description("내용"),
                                 fieldWithPath("nickname").description("작성자 닉네임"),
+                                fieldWithPath("likeCount").description("좋아요 수"),
+                                fieldWithPath("likedByMe").description("내가 좋아요를 눌렀는지 여부"),
                                 fieldWithPath("createdAt").description("작성 일시"),
                                 fieldWithPath("updatedAt").description("수정 일시")
                         )
@@ -117,6 +123,7 @@ class PostControllerTest {
         willDoNothing().given(postService).create(eq(1L), any());
 
         mockMvc.perform(post("/posts")
+                        .with(csrf())
                         .header("Authorization", "Bearer access-token")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(new CreatePostRequest("제목", "내용"))))
@@ -132,10 +139,11 @@ class PostControllerTest {
     @Test
     void update() throws Exception {
         mockAuthUser();
-        PostResponse response = new PostResponse(1L, "수정된 제목", "수정된 내용", "홍길동", NOW, NOW);
+        PostDetailResponse response = new PostDetailResponse(1L, "수정된 제목", "수정된 내용", "홍길동", 0L, false, NOW, NOW);
         given(postService.update(eq(1L), eq(1L), any())).willReturn(response);
 
         mockMvc.perform(patch("/posts/{id}", 1L)
+                        .with(csrf())
                         .header("Authorization", "Bearer access-token")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(new UpdatePostRequest("수정된 제목", "수정된 내용"))))
@@ -154,6 +162,8 @@ class PostControllerTest {
                                 fieldWithPath("title").description("제목"),
                                 fieldWithPath("content").description("내용"),
                                 fieldWithPath("nickname").description("작성자 닉네임"),
+                                fieldWithPath("likeCount").description("좋아요 수"),
+                                fieldWithPath("likedByMe").description("내가 좋아요를 눌렀는지 여부"),
                                 fieldWithPath("createdAt").description("작성 일시"),
                                 fieldWithPath("updatedAt").description("수정 일시")
                         )
@@ -166,9 +176,42 @@ class PostControllerTest {
         willDoNothing().given(postService).delete(1L, 1L);
 
         mockMvc.perform(delete("/posts/{id}", 1L)
+                        .with(csrf())
                         .header("Authorization", "Bearer access-token"))
                 .andExpect(status().isNoContent())
                 .andDo(document("posts/delete",
+                        pathParameters(
+                                parameterWithName("id").description("게시글 ID")
+                        )
+                ));
+    }
+
+    @Test
+    void like() throws Exception {
+        mockAuthUser();
+        willDoNothing().given(postService).like(1L, 1L);
+
+        mockMvc.perform(post("/posts/{id}/likes", 1L)
+                        .with(csrf())
+                        .header("Authorization", "Bearer access-token"))
+                .andExpect(status().isCreated())
+                .andDo(document("posts/like",
+                        pathParameters(
+                                parameterWithName("id").description("게시글 ID")
+                        )
+                ));
+    }
+
+    @Test
+    void unlike() throws Exception {
+        mockAuthUser();
+        willDoNothing().given(postService).unlike(1L, 1L);
+
+        mockMvc.perform(delete("/posts/{id}/likes", 1L)
+                        .with(csrf())
+                        .header("Authorization", "Bearer access-token"))
+                .andExpect(status().isNoContent())
+                .andDo(document("posts/unlike",
                         pathParameters(
                                 parameterWithName("id").description("게시글 ID")
                         )

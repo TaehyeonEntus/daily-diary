@@ -22,6 +22,8 @@ import static org.mockito.Mockito.inOrder;
 
 @ExtendWith(MockitoExtension.class)
 class UserServiceTest {
+    @InjectMocks
+    UserService userService;
 
     @Mock
     UserRepository userRepository;
@@ -29,8 +31,6 @@ class UserServiceTest {
     @Mock
     Cache<Long, String> refreshTokenCache;
 
-    @InjectMocks
-    UserService userService;
 
     // ─── getMe ────────────────────────────────────────────────────────────────
 

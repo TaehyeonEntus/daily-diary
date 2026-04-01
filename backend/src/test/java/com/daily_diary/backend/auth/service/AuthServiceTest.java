@@ -15,6 +15,7 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import com.daily_diary.backend.global.security.CustomUserDetails;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -84,7 +85,9 @@ class AuthServiceTest {
     @Test
     void login_정상() {
         // given
-        Authentication auth = new UsernamePasswordAuthenticationToken("1", null);
+        CustomUserDetails userDetails = new CustomUserDetails(1L);
+        Authentication auth = new UsernamePasswordAuthenticationToken(userDetails, null);
+
         given(authenticationManager.authenticate(any())).willReturn(auth);
         given(jwtProvider.createAccessToken(1L)).willReturn("access-token");
         given(jwtProvider.createRefreshToken(1L)).willReturn("refresh-token");

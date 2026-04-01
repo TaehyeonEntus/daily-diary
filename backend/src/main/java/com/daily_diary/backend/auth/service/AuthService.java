@@ -4,6 +4,7 @@ import com.daily_diary.backend.auth.exception.InvalidCredentialsException;
 import com.daily_diary.backend.auth.exception.InvalidTokenException;
 import com.daily_diary.backend.auth.web.LoginRequest;
 import com.daily_diary.backend.auth.web.SignupRequest;
+import com.daily_diary.backend.global.security.CustomUserDetails;
 import com.daily_diary.backend.global.security.JwtProvider;
 import com.daily_diary.backend.user.entity.User;
 import com.daily_diary.backend.user.exception.DuplicateUsernameException;
@@ -33,15 +34,12 @@ public class AuthService {
     public void signup(SignupRequest request) {
         validUniqueUsername(request.username());
 
-        userRepository.save(
-                User.of(request.username(), passwordEncoder.encode(request.password()), request.nickname())
-        );
+        userRepository.save(User.of(request.username(), passwordEncoder.encode(request.password()), request.nickname()));
     }
 
     public Tokens login(LoginRequest request) {
-        Authentication authentication = authenticate(request.username(), request.password());
-
-        Long userId = Long.parseLong(authentication.getName());
+        CustomUserDetails customUserDetails = (CustomUserDetails) authenticate(request.username(), request.password()).getPrincipal();
+        Long userId = customUserDetails.userId();
 
         String accessToken = jwtProvider.createAccessToken(userId);
         String refreshToken = jwtProvider.createRefreshToken(userId);
