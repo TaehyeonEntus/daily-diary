@@ -6,6 +6,7 @@ import com.daily_diary.backend.post.exception.LikeAlreadyExistsException;
 import com.daily_diary.backend.post.exception.LikeNotFoundException;
 import com.daily_diary.backend.post.exception.PostAccessDeniedException;
 import com.daily_diary.backend.post.exception.PostNotFoundException;
+import com.daily_diary.backend.comment.service.CommentService;
 import com.daily_diary.backend.post.infra.PostLikeRepository;
 import com.daily_diary.backend.post.infra.PostRepository;
 import com.daily_diary.backend.post.web.CreatePostRequest;
@@ -49,6 +50,9 @@ class PostServiceTest {
 
     @Mock
     PostLikeRepository postLikeRepository;
+
+    @Mock
+    CommentService commentService;
 
 
     private User createUser(Long id, String nickname) {
@@ -212,12 +216,14 @@ class PostServiceTest {
         // given
         User user = createUser(1L, "닉네임");
         Post post = createPost(user, "제목", "내용");
+        ReflectionTestUtils.setField(post, "id", 1L);
         given(postRepository.findById(1L)).willReturn(Optional.of(post));
 
         // when
         postService.delete(1L, 1L);
 
         // then
+        verify(commentService).deleteAllByPostId(1L);
         verify(postRepository).delete(post);
     }
 

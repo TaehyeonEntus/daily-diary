@@ -1,5 +1,6 @@
 package com.daily_diary.backend.post.service;
 
+import com.daily_diary.backend.comment.service.CommentService;
 import com.daily_diary.backend.post.entity.Post;
 import com.daily_diary.backend.post.entity.PostLike;
 import com.daily_diary.backend.post.exception.LikeAlreadyExistsException;
@@ -31,6 +32,7 @@ public class PostService {
     private final PostRepository postRepository;
     private final UserRepository userRepository;
     private final PostLikeRepository postLikeRepository;
+    private final CommentService commentService;
 
     @Transactional
     public void create(Long userId, CreatePostRequest request) {
@@ -80,6 +82,7 @@ public class PostService {
 
         validatePostOwner(post, userId);
 
+        commentService.deleteAllByPostId(postId);
         postRepository.delete(post);
     }
 

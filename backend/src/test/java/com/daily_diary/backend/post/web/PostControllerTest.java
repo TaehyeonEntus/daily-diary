@@ -61,7 +61,7 @@ class PostControllerTest {
     @Test
     void list() throws Exception {
         PostListResponse response = new PostListResponse(
-                List.of(new PostSummaryResponse(1L, "첫 번째 게시글", "홍길동", 3L, NOW)),
+                List.of(new PostSummaryResponse(1L, "첫 번째 게시글", "홍길동", 10L, 3L, NOW)),
                 0, 10, 1L, 1
         );
         given(postService.list(0, 10)).willReturn(response);
@@ -80,6 +80,7 @@ class PostControllerTest {
                                 fieldWithPath("content[].id").description("게시글 ID"),
                                 fieldWithPath("content[].title").description("제목"),
                                 fieldWithPath("content[].nickname").description("작성자 닉네임"),
+                                fieldWithPath("content[].viewCount").description("조회수"),
                                 fieldWithPath("content[].likeCount").description("좋아요 수"),
                                 fieldWithPath("content[].createdAt").description("작성 일시"),
                                 fieldWithPath("page").description("현재 페이지 번호"),
@@ -93,7 +94,7 @@ class PostControllerTest {
     @Test
     void getPost() throws Exception {
         mockAuthUser();
-        PostDetailResponse response = new PostDetailResponse(1L, "첫 번째 게시글", "내용입니다.", "홍길동", 5L, true, NOW, NOW);
+        PostDetailResponse response = new PostDetailResponse(1L, "첫 번째 게시글", "내용입니다.", "홍길동", 10L, 5L, true, NOW, NOW);
         given(postService.getPost(eq(1L), eq(1L))).willReturn(response);
 
         mockMvc.perform(get("/posts/{id}", 1L)
@@ -109,6 +110,7 @@ class PostControllerTest {
                                 fieldWithPath("title").description("제목"),
                                 fieldWithPath("content").description("내용"),
                                 fieldWithPath("nickname").description("작성자 닉네임"),
+                                fieldWithPath("viewCount").description("조회수"),
                                 fieldWithPath("likeCount").description("좋아요 수"),
                                 fieldWithPath("likedByMe").description("내가 좋아요를 눌렀는지 여부"),
                                 fieldWithPath("createdAt").description("작성 일시"),
@@ -139,7 +141,7 @@ class PostControllerTest {
     @Test
     void update() throws Exception {
         mockAuthUser();
-        PostDetailResponse response = new PostDetailResponse(1L, "수정된 제목", "수정된 내용", "홍길동", 0L, false, NOW, NOW);
+        PostDetailResponse response = new PostDetailResponse(1L, "수정된 제목", "수정된 내용", "홍길동", 10L, 0L, false, NOW, NOW);
         given(postService.update(eq(1L), eq(1L), any())).willReturn(response);
 
         mockMvc.perform(patch("/posts/{id}", 1L)
@@ -162,6 +164,7 @@ class PostControllerTest {
                                 fieldWithPath("title").description("제목"),
                                 fieldWithPath("content").description("내용"),
                                 fieldWithPath("nickname").description("작성자 닉네임"),
+                                fieldWithPath("viewCount").description("조회수"),
                                 fieldWithPath("likeCount").description("좋아요 수"),
                                 fieldWithPath("likedByMe").description("내가 좋아요를 눌렀는지 여부"),
                                 fieldWithPath("createdAt").description("작성 일시"),

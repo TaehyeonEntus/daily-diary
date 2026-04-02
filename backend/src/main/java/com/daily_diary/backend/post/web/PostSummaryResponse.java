@@ -8,6 +8,7 @@ public record PostSummaryResponse(
         Long id,
         String title,
         String nickname,
+        long viewCount,
         long likeCount,
         LocalDateTime createdAt
 ) {
@@ -16,6 +17,7 @@ public record PostSummaryResponse(
                 post.getId(),
                 post.getTitle(),
                 post.getUser().getNickname(),
+                post.getViewCount(),
                 post.getLikeCount(),
                 post.getCreatedAt()
         );
