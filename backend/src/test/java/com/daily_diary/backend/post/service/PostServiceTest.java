@@ -6,12 +6,15 @@ import com.daily_diary.backend.post.exception.LikeAlreadyExistsException;
 import com.daily_diary.backend.post.exception.LikeNotFoundException;
 import com.daily_diary.backend.post.exception.PostAccessDeniedException;
 import com.daily_diary.backend.post.exception.PostNotFoundException;
-import com.daily_diary.backend.comment.service.CommentService;
 import com.daily_diary.backend.post.infra.PostLikeRepository;
+import com.daily_diary.backend.post.infra.PostQueryRepository;
 import com.daily_diary.backend.post.infra.PostRepository;
 import com.daily_diary.backend.post.web.CreatePostRequest;
 import com.daily_diary.backend.post.web.PostListResponse;
 import com.daily_diary.backend.post.web.PostDetailResponse;
+import com.daily_diary.backend.post.web.PostSearchCondition;
+import com.daily_diary.backend.post.web.PostSummaryResponse;
+import com.daily_diary.backend.post.web.SortType;
 import com.daily_diary.backend.post.web.UpdatePostRequest;
 import com.daily_diary.backend.user.entity.User;
 import com.daily_diary.backend.user.exception.UserNotFoundException;
@@ -22,10 +25,8 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
-import org.springframework.data.domain.Sort;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import java.util.List;
@@ -49,11 +50,10 @@ class PostServiceTest {
     UserRepository userRepository;
 
     @Mock
-    PostLikeRepository postLikeRepository;
+    PostQueryRepository postQueryRepository;
 
     @Mock
-    CommentService commentService;
-
+    PostLikeRepository postLikeRepository;
 
     private User createUser(Long id, String nickname) {
         User user = User.of("user" + id, "encoded", nickname);
@@ -65,17 +65,19 @@ class PostServiceTest {
         return Post.of(title, content, user);
     }
 
-    // ─── list ─────────────────────────────────────────────────────────────────
+    // ─── search ───────────────────────────────────────────────────────────────
 
     @Test
-    void list_정상() {
+    void search_정상() {
         // given
         User user = createUser(1L, "닉네임");
         Post post = createPost(user, "제목", "내용");
-        given(postRepository.findAll(any(Pageable.class))).willReturn(new PageImpl<>(List.of(post)));
+        ReflectionTestUtils.setField(post, "id", 1L);
+        given(postQueryRepository.search(any(PostSearchCondition.class), any(Pageable.class)))
+                .willReturn(new PageImpl<>(List.of(PostSummaryResponse.from(post))));
 
         // when
-        PostListResponse response = postService.list(0, 10);
+        PostListResponse response = postService.search(new PostSearchCondition(null, null, null, SortType.DATE), 0, 10);
 
         // then
         assertThat(response.content()).hasSize(1);
@@ -83,19 +85,38 @@ class PostServiceTest {
     }
 
     @Test
-    void list_정렬_createdAt_DESC() {
+    void search_닉네임_필터() {
         // given
-        given(postRepository.findAll(any(Pageable.class))).willReturn(Page.empty());
+        User user = createUser(1L, "홍길동");
+        Post post = createPost(user, "제목", "내용");
+        ReflectionTestUtils.setField(post, "id", 1L);
+        PostSearchCondition condition = new PostSearchCondition("홍길동", null, null, SortType.DATE);
+        given(postQueryRepository.search(any(PostSearchCondition.class), any(Pageable.class)))
+                .willReturn(new PageImpl<>(List.of(PostSummaryResponse.from(post))));
 
         // when
-        postService.list(0, 10);
+        PostListResponse response = postService.search(condition, 0, 10);
 
         // then
-        ArgumentCaptor<Pageable> captor = ArgumentCaptor.forClass(Pageable.class);
-        verify(postRepository).findAll(captor.capture());
-        Sort.Order order = captor.getValue().getSort().getOrderFor("createdAt");
-        assertThat(order).isNotNull();
-        assertThat(order.getDirection()).isEqualTo(Sort.Direction.DESC);
+        assertThat(response.content()).hasSize(1);
+        assertThat(response.content().get(0).nickname()).isEqualTo("홍길동");
+    }
+
+    @Test
+    void search_정렬_VIEW() {
+        // given
+        PostSearchCondition condition = new PostSearchCondition(null, null, null, SortType.VIEW);
+        given(postQueryRepository.search(any(PostSearchCondition.class), any(Pageable.class)))
+                .willReturn(new PageImpl<>(List.of()));
+
+        // when
+        PostListResponse response = postService.search(condition, 0, 10);
+
+        // then
+        assertThat(response.content()).isEmpty();
+        ArgumentCaptor<PostSearchCondition> captor = ArgumentCaptor.forClass(PostSearchCondition.class);
+        verify(postQueryRepository).search(captor.capture(), any(Pageable.class));
+        assertThat(captor.getValue().sort()).isEqualTo(SortType.VIEW);
     }
 
     // ─── getPost ──────────────────────────────────────────────────────────────
@@ -113,6 +134,8 @@ class PostServiceTest {
         // then
         assertThat(response.title()).isEqualTo("제목");
         assertThat(response.likedByMe()).isFalse();
+        verify(postRepository).increaseViewCount(1L);
+        assertThat(response.viewCount()).isEqualTo(1L);
     }
 
     @Test
@@ -223,7 +246,6 @@ class PostServiceTest {
         postService.delete(1L, 1L);
 
         // then
-        verify(commentService).deleteAllByPostId(1L);
         verify(postRepository).delete(post);
     }
 

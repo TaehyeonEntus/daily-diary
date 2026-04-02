@@ -19,8 +19,4 @@ public interface CommentLikeRepository extends JpaRepository<CommentLike, Long> 
     List<CommentLike> findAllByCommentIdInAndUserId(Collection<Long> commentIds, Long userId);
 
     void deleteAllByCommentId(Long commentId);
-
-    @Modifying
-    @Query("delete from CommentLike cl where cl.comment.id in (select c.id from Comment c where c.post.id = :postId)")
-    void deleteAllByPostId(@Param("postId") Long postId);
 }

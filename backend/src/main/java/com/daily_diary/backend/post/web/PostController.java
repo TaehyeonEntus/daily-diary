@@ -17,9 +17,14 @@ public class PostController {
 
     @GetMapping
     public ResponseEntity<PostListResponse> list(
+            @RequestParam(required = false) String nickname,
+            @RequestParam(required = false) String title,
+            @RequestParam(required = false) String content,
+            @RequestParam(defaultValue = "DATE") SortType sort,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size) {
-        return ResponseEntity.ok(postService.list(page, size));
+        PostSearchCondition condition = new PostSearchCondition(nickname, title, content, sort);
+        return ResponseEntity.ok(postService.search(condition, page, size));
     }
 
     @GetMapping("/{id}")

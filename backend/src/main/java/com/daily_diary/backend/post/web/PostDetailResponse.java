@@ -28,4 +28,18 @@ public record PostDetailResponse(
                 post.getUpdatedAt()
         );
     }
+
+    public static PostDetailResponse from(Post post, long viewCount, boolean likedByMe) {
+        return new PostDetailResponse(
+                post.getId(),
+                post.getTitle(),
+                post.getContent(),
+                post.getUser().getNickname(),
+                viewCount,
+                post.getLikeCount(),
+                likedByMe,
+                post.getCreatedAt(),
+                post.getUpdatedAt()
+        );
+    }
 }

@@ -235,7 +235,6 @@ class CommentServiceTest {
         commentService.delete(1L, 1L);
 
         // then
-        verify(commentLikeRepository).deleteAllByCommentId(1L);
         verify(commentRepository).delete(comment);
     }
 

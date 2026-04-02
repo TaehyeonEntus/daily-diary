@@ -91,14 +91,7 @@ public class CommentService {
 
         validateCommentOwner(comment, userId);
 
-        commentLikeRepository.deleteAllByCommentId(commentId);
         commentRepository.delete(comment);
-    }
-
-    @Transactional
-    public void deleteAllByPostId(Long postId) {
-        commentLikeRepository.deleteAllByPostId(postId);
-        commentRepository.deleteAllByPostId(postId);
     }
 
     @Transactional
