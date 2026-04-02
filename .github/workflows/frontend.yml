@@ -13,49 +13,39 @@ on:
 jobs:
   build-and-test:
     runs-on: ubuntu-latest
-
     defaults:
       run:
         working-directory: frontend
-
     steps:
       - uses: actions/checkout@v4
-
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
           node-version: '20'
           cache: 'npm'
           cache-dependency-path: frontend/package-lock.json
-
       - name: Install dependencies
         run: npm ci
-
       - name: Lint
         run: npm run lint
-
       - name: Build
         run: npm run build
 
-  deploy:
+  ci:
     runs-on: ubuntu-latest
     needs: build-and-test
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-
     permissions:
       contents: read
       packages: write
-
     steps:
       - uses: actions/checkout@v4
-
       - name: Log in to GitHub Container Registry
         uses: docker/login-action@v3
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
-
       - name: Build and push Docker image
         uses: docker/build-push-action@v5
         with:
@@ -65,20 +55,31 @@ jobs:
             ghcr.io/${{ github.repository_owner }}/daily-diary-frontend:latest
             ghcr.io/${{ github.repository_owner }}/daily-diary-frontend:${{ github.sha }}
 
+  cd:
+    runs-on: ubuntu-latest
+    needs: ci
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    steps:
+      - uses: actions/checkout@v4
+      - name: Copy docker-compose.yml to server
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USER }}
+          key: ${{ secrets.EC2_SSH_KEY }}
+          source: frontend/docker-compose.yml
+          target: ~/daily-diary/frontend
+          strip_components: 1
       - name: Deploy to server via SSH
         uses: appleboy/ssh-action@v1
         with:
-          host: ${{ secrets.FRONTEND_HOST }}
-          username: ${{ secrets.FRONTEND_USER }}
-          key: ${{ secrets.FRONTEND_SSH_KEY }}
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USER }}
+          key: ${{ secrets.EC2_SSH_KEY }}
           script: |
+            cd ~/daily-diary/frontend
             echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
-            docker pull ghcr.io/${{ github.repository_owner }}/daily-diary-frontend:latest
-            docker stop daily-diary-frontend || true
-            docker rm daily-diary-frontend || true
-            docker run -d \
-              --name daily-diary-frontend \
-              -p 3000:3000 \
-              --restart unless-stopped \
-              ghcr.io/${{ github.repository_owner }}/daily-diary-frontend:latest
+            export GITHUB_REPOSITORY_OWNER=${{ github.repository_owner }}
+            docker compose pull frontend
+            docker compose up -d
             docker image prune -f
