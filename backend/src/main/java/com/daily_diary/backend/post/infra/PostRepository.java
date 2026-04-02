@@ -8,10 +8,14 @@ import org.springframework.data.repository.query.Param;
 
 public interface PostRepository extends JpaRepository<Post, Long> {
     @Modifying
+    @Query("update Post p set p.viewCount = p.viewCount + 1 where p.id = :id")
+    void increaseViewCount(@Param("id") Long postId);
+
+    @Modifying
     @Query("update Post p set p.likeCount = p.likeCount + 1 where p.id = :id")
     void increaseLikeCount(@Param("id") Long postId);
 
     @Modifying
-    @Query("update Post p set p.likeCount = p.likeCount - 1 where p.id = :id")
+    @Query("update Post p set p.likeCount = p.likeCount - 1 where p.id = :id and p.likeCount > 0")
     void decreaseLikeCount(@Param("id") Long postId);
 }

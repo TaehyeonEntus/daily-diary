@@ -134,3 +134,60 @@ include::{snippets}/posts/update/response-fields.adoc[]
 include::{snippets}/posts/delete/http-request.adoc[]
 include::{snippets}/posts/delete/path-parameters.adoc[]
 include::{snippets}/posts/delete/http-response.adoc[]
+
+=== 게시글 좋아요
+
+include::{snippets}/posts/like/http-request.adoc[]
+include::{snippets}/posts/like/path-parameters.adoc[]
+include::{snippets}/posts/like/http-response.adoc[]
+
+=== 게시글 좋아요 취소
+
+include::{snippets}/posts/unlike/http-request.adoc[]
+include::{snippets}/posts/unlike/path-parameters.adoc[]
+include::{snippets}/posts/unlike/http-response.adoc[]
+
+'''
+
+== Comment API
+
+=== 댓글 목록 조회
+
+include::{snippets}/comments/list/http-request.adoc[]
+include::{snippets}/comments/list/path-parameters.adoc[]
+include::{snippets}/comments/list/query-parameters.adoc[]
+include::{snippets}/comments/list/http-response.adoc[]
+include::{snippets}/comments/list/response-fields.adoc[]
+
+=== 댓글 작성
+
+include::{snippets}/comments/create/http-request.adoc[]
+include::{snippets}/comments/create/path-parameters.adoc[]
+include::{snippets}/comments/create/request-fields.adoc[]
+include::{snippets}/comments/create/http-response.adoc[]
+
+=== 댓글 수정
+
+include::{snippets}/comments/update/http-request.adoc[]
+include::{snippets}/comments/update/path-parameters.adoc[]
+include::{snippets}/comments/update/request-fields.adoc[]
+include::{snippets}/comments/update/http-response.adoc[]
+include::{snippets}/comments/update/response-fields.adoc[]
+
+=== 댓글 삭제
+
+include::{snippets}/comments/delete/http-request.adoc[]
+include::{snippets}/comments/delete/path-parameters.adoc[]
+include::{snippets}/comments/delete/http-response.adoc[]
+
+=== 댓글 좋아요
+
+include::{snippets}/comments/like/http-request.adoc[]
+include::{snippets}/comments/like/path-parameters.adoc[]
+include::{snippets}/comments/like/http-response.adoc[]
+
+=== 댓글 좋아요 취소
+
+include::{snippets}/comments/unlike/http-request.adoc[]
+include::{snippets}/comments/unlike/path-parameters.adoc[]
+include::{snippets}/comments/unlike/http-response.adoc[]
