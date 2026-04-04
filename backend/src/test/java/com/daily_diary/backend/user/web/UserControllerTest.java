@@ -23,6 +23,7 @@ import static org.mockito.BDDMockito.given;
 import static org.mockito.BDDMockito.willDoNothing;
 import static org.springframework.restdocs.mockmvc.MockMvcRestDocumentation.document;
 import static org.springframework.restdocs.payload.PayloadDocumentation.*;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -57,7 +58,7 @@ class UserControllerTest {
     void getMe() throws Exception {
         mockAuthUser();
         UserDetailResponse response = new UserDetailResponse(1L, "testuser", "테스터", LocalDateTime.now());
-        given(userService.getMe(1L)).willReturn(response);
+        given(userService.get(1L)).willReturn(response);
 
         mockMvc.perform(get("/users/me")
                         .header("Authorization", "Bearer access-token"))
@@ -77,24 +78,17 @@ class UserControllerTest {
     @Test
     void updateMe() throws Exception {
         mockAuthUser();
-        UserDetailResponse response = new UserDetailResponse(1L, "testuser", "새닉네임", LocalDateTime.now());
-        given(userService.updateMe(eq(1L), any())).willReturn(response);
+        willDoNothing().given(userService).update(eq(1L), any());
 
         mockMvc.perform(patch("/users/me")
+                        .with(csrf())
                         .header("Authorization", "Bearer access-token")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(new UserNicknameUpdateRequest("새닉네임"))))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.nickname").value("새닉네임"))
+                .andExpect(status().isNoContent())
                 .andDo(document("users/update-me",
                         requestFields(
                                 fieldWithPath("nickname").description("변경할 닉네임")
-                        ),
-                        responseFields(
-                                fieldWithPath("id").description("사용자 ID"),
-                                fieldWithPath("username").description("아이디"),
-                                fieldWithPath("nickname").description("닉네임"),
-                                fieldWithPath("createdAt").description("가입 일시")
                         )
                 ));
     }
@@ -102,9 +96,10 @@ class UserControllerTest {
     @Test
     void deleteMe() throws Exception {
         mockAuthUser();
-        willDoNothing().given(userService).deleteMe(1L);
+        willDoNothing().given(userService).delete(1L);
 
         mockMvc.perform(delete("/users/me")
+                        .with(csrf())
                         .header("Authorization", "Bearer access-token"))
                 .andExpect(status().isNoContent())
                 .andDo(document("users/delete-me"));

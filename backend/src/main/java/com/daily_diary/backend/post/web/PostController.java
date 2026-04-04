@@ -15,47 +15,67 @@ public class PostController {
 
     private final PostService postService;
 
-    @GetMapping
-    public ResponseEntity<PostListResponse> list(
-            @RequestParam(required = false) String nickname,
-            @RequestParam(required = false) String title,
-            @RequestParam(required = false) String content,
-            @RequestParam(defaultValue = "DATE") SortType sort,
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "20") int size) {
-        PostSearchCondition condition = new PostSearchCondition(nickname, title, content, sort);
-        return ResponseEntity.ok(postService.search(condition, page, size));
+    @PostMapping
+    public ResponseEntity<PostDetailResponse> create(
+            @AuthenticationPrincipal CustomUserDetails userDetails,
+            @Valid @RequestBody CreatePostRequest request) {
+
+        PostDetailResponse response = postService.create(userDetails.getUserId(), request);
+
+        return ResponseEntity.status(201).body(response);
     }
 
     @GetMapping("/{id}")
     public ResponseEntity<PostDetailResponse> getPost(
             @AuthenticationPrincipal CustomUserDetails userDetails,
             @PathVariable Long id) {
-        Long userId = userDetails != null ? userDetails.userId() : null;
-        return ResponseEntity.ok(postService.getPost(id, userId));
+
+        Long userId = userDetails == null
+                ? null
+                : userDetails.getUserId();
+
+        PostDetailResponse response = postService.get(id, userId);
+
+        return ResponseEntity.ok(response);
     }
 
-    @PostMapping
-    public ResponseEntity<Void> create(
-            @AuthenticationPrincipal CustomUserDetails userDetails,
-            @Valid @RequestBody CreatePostRequest request) {
-        postService.create(userDetails.userId(), request);
-        return ResponseEntity.status(201).build();
+    @GetMapping("/hot")
+    public ResponseEntity<PostListResponse> getHotList() {
+        return ResponseEntity.ok(postService.getHotList());
+    }
+
+    @GetMapping
+    public ResponseEntity<PostPageResponse> getList(
+            @RequestParam(defaultValue = "DEFAULT") SearchType searchType,
+            @RequestParam(required = false) String keyword,
+            @RequestParam(defaultValue = "DATE") OrderType orderType,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size) {
+
+        PostSearchCondition search = new PostSearchCondition(searchType, keyword);
+        PostPageResponse response = postService.getList(search, orderType, page, size);
+
+        return ResponseEntity.ok(response);
     }
 
     @PatchMapping("/{id}")
-    public ResponseEntity<PostDetailResponse> update(
+    public ResponseEntity<Void> update(
             @AuthenticationPrincipal CustomUserDetails userDetails,
             @PathVariable Long id,
             @Valid @RequestBody UpdatePostRequest request) {
-        return ResponseEntity.ok(postService.update(userDetails.userId(), id, request));
+
+        postService.update(userDetails.getUserId(), id, request);
+
+        return ResponseEntity.noContent().build();
     }
 
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> delete(
             @AuthenticationPrincipal CustomUserDetails userDetails,
             @PathVariable Long id) {
-        postService.delete(userDetails.userId(), id);
+
+        postService.delete(userDetails.getUserId(), id);
+
         return ResponseEntity.noContent().build();
     }
 
@@ -63,15 +83,19 @@ public class PostController {
     public ResponseEntity<Void> like(
             @AuthenticationPrincipal CustomUserDetails userDetails,
             @PathVariable Long id) {
-        postService.like(userDetails.userId(), id);
-        return ResponseEntity.status(201).build();
+
+        postService.like(userDetails.getUserId(), id);
+
+        return ResponseEntity.noContent().build();
     }
 
     @DeleteMapping("/{id}/likes")
     public ResponseEntity<Void> unlike(
             @AuthenticationPrincipal CustomUserDetails userDetails,
             @PathVariable Long id) {
-        postService.unlike(userDetails.userId(), id);
+
+        postService.unlike(userDetails.getUserId(), id);
+
         return ResponseEntity.noContent().build();
     }
 }

@@ -11,11 +11,11 @@ public record PostDetailResponse(
         String nickname,
         long viewCount,
         long likeCount,
-        boolean likedByMe,
+        boolean like,
         LocalDateTime createdAt,
         LocalDateTime updatedAt
 ) {
-    public static PostDetailResponse from(Post post, boolean likedByMe) {
+    public static PostDetailResponse from(Post post, boolean like) {
         return new PostDetailResponse(
                 post.getId(),
                 post.getTitle(),
@@ -23,21 +23,7 @@ public record PostDetailResponse(
                 post.getUser().getNickname(),
                 post.getViewCount(),
                 post.getLikeCount(),
-                likedByMe,
-                post.getCreatedAt(),
-                post.getUpdatedAt()
-        );
-    }
-
-    public static PostDetailResponse from(Post post, long viewCount, boolean likedByMe) {
-        return new PostDetailResponse(
-                post.getId(),
-                post.getTitle(),
-                post.getContent(),
-                post.getUser().getNickname(),
-                viewCount,
-                post.getLikeCount(),
-                likedByMe,
+                like,
                 post.getCreatedAt(),
                 post.getUpdatedAt()
         );

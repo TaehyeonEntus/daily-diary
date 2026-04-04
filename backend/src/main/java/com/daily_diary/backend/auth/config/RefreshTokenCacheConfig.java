@@ -9,7 +9,7 @@ import org.springframework.context.annotation.Configuration;
 import java.util.concurrent.TimeUnit;
 
 @Configuration
-public class CacheConfig {
+public class RefreshTokenCacheConfig {
 
     @Value("${jwt.refresh-token-expiry}")
     private long refreshTokenExpiry;

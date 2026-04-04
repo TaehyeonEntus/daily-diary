@@ -8,17 +8,13 @@ public record CommentSummaryResponse(
         Long id,
         String content,
         String nickname,
-        long likeCount,
-        boolean likedByMe,
         LocalDateTime createdAt
 ) {
-    public static CommentSummaryResponse from(Comment comment, boolean likedByMe) {
+    public static CommentSummaryResponse from(Comment comment) {
         return new CommentSummaryResponse(
                 comment.getId(),
                 comment.getContent(),
                 comment.getUser().getNickname(),
-                comment.getLikeCount(),
-                likedByMe,
                 comment.getCreatedAt()
         );
     }

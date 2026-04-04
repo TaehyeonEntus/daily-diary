@@ -5,23 +5,18 @@ import com.daily_diary.backend.post.entity.PostLike;
 import com.daily_diary.backend.post.exception.LikeAlreadyExistsException;
 import com.daily_diary.backend.post.exception.LikeNotFoundException;
 import com.daily_diary.backend.post.exception.PostAccessDeniedException;
-import com.daily_diary.backend.post.exception.PostNotFoundException;
 import com.daily_diary.backend.post.infra.PostLikeRepository;
 import com.daily_diary.backend.post.infra.PostQueryRepository;
 import com.daily_diary.backend.post.infra.PostRepository;
-import com.daily_diary.backend.post.web.CreatePostRequest;
-import com.daily_diary.backend.post.web.PostListResponse;
-import com.daily_diary.backend.post.web.PostDetailResponse;
-import com.daily_diary.backend.post.web.PostSearchCondition;
-import com.daily_diary.backend.post.web.UpdatePostRequest;
+import com.daily_diary.backend.post.web.*;
 import com.daily_diary.backend.user.entity.User;
-import com.daily_diary.backend.user.exception.UserNotFoundException;
 import com.daily_diary.backend.user.infra.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.util.List;
 
 @Service
 @RequiredArgsConstructor
@@ -32,51 +27,43 @@ public class PostService {
     private final PostQueryRepository postQueryRepository;
     private final UserRepository userRepository;
     private final PostLikeRepository postLikeRepository;
+    private final List<Long> hotPostsCache;
 
     @Transactional
-    public void create(Long userId, CreatePostRequest request) {
-        User user = userRepository.findById(userId)
-                .orElseThrow(UserNotFoundException::new);
+    public PostDetailResponse create(Long userId, CreatePostRequest request) {
+        User user = userRepository.findOrThrow(userId);
+        Post post = postRepository.save(Post.of(request.title(), request.content(), user));
 
-        postRepository.save(Post.of(request.title(), request.content(), user));
+        return PostDetailResponse.from(post, false);
     }
 
     @Transactional
-    public PostDetailResponse getPost(Long postId, Long userId) {
-        Post post = postRepository.findById(postId)
-                .orElseThrow(PostNotFoundException::new);
-
+    public PostDetailResponse get(Long postId, Long userId) {
         postRepository.increaseViewCount(postId);
-
-        boolean likedByMe = postLikeRepository.existsByPostIdAndUserId(postId, userId);
-
-        return PostDetailResponse.from(post, post.getViewCount() + 1, likedByMe);
+        return postQueryRepository.findPostDetail(postId, userId);
     }
 
-    public PostListResponse search(PostSearchCondition condition, int page, int size) {
-        Pageable pageable = PageRequest.of(page, size);
-        return PostListResponse.from(postQueryRepository.search(condition, pageable));
+    public PostPageResponse getList(PostSearchCondition condition, OrderType orderType, int page, int size) {
+        return PostPageResponse.from(postQueryRepository.getPage(condition, orderType, PageRequest.of(page, size)));
+    }
+
+    public PostListResponse getHotList() {
+        return PostListResponse.from(postQueryRepository.findSummariesByIds(hotPostsCache));
     }
 
     @Transactional
-    public PostDetailResponse update(Long userId, Long postId, UpdatePostRequest request) {
-        Post post = postRepository.findById(postId)
-                .orElseThrow(PostNotFoundException::new);
+    public void update(Long userId, Long postId, UpdatePostRequest request) {
+        Post post = postRepository.findOrThrow(postId);
 
         validatePostOwner(post, userId);
 
         post.changeTitle(request.title());
         post.changeContent(request.content());
-
-        boolean likedByMe = postLikeRepository.existsByPostIdAndUserId(postId, userId);
-
-        return PostDetailResponse.from(post, likedByMe);
     }
 
     @Transactional
     public void delete(Long userId, Long postId) {
-        Post post = postRepository.findById(postId)
-                .orElseThrow(PostNotFoundException::new);
+        Post post = postRepository.findOrThrow(postId);
 
         validatePostOwner(post, userId);
 
@@ -85,10 +72,8 @@ public class PostService {
 
     @Transactional
     public void like(Long userId, Long postId) {
-        Post post = postRepository.findById(postId)
-                .orElseThrow(PostNotFoundException::new);
-        User user = userRepository.findById(userId)
-                .orElseThrow(UserNotFoundException::new);
+        Post post = postRepository.getReferenceById(postId);
+        User user = userRepository.getReferenceById(userId);
 
         validateNotAlreadyLiked(postId, userId);
 
@@ -98,12 +83,11 @@ public class PostService {
 
     @Transactional
     public void unlike(Long userId, Long postId) {
-        PostLike postLike = postLikeRepository.findByPostIdAndUserId(postId, userId)
-                .orElseThrow(LikeNotFoundException::new);
-
-        postLikeRepository.delete(postLike);
+        postLikeRepository.delete(postLikeRepository.findByPostIdAndUserId(postId, userId).orElseThrow(LikeNotFoundException::new));
         postRepository.decreaseLikeCount(postId);
     }
+
+    // ─── private ──────────────────────────────────────────────────────────────
 
     private void validatePostOwner(Post post, Long userId) {
         if (!post.getUser().getId().equals(userId)) {

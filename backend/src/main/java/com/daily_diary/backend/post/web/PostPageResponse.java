@@ -1,18 +1,18 @@
-package com.daily_diary.backend.comment.web;
+package com.daily_diary.backend.post.web;
 
 import org.springframework.data.domain.Page;
 
 import java.util.List;
 
-public record CommentListResponse(
-        List<CommentSummaryResponse> content,
+public record PostPageResponse(
+        List<PostSummaryResponse> content,
         int page,
         int size,
         long totalElements,
         int totalPages
 ) {
-    public static CommentListResponse from(Page<CommentSummaryResponse> pageResult) {
-        return new CommentListResponse(
+    public static PostPageResponse from(Page<PostSummaryResponse> pageResult) {
+        return new PostPageResponse(
                 pageResult.getContent(),
                 pageResult.getNumber(),
                 pageResult.getSize(),

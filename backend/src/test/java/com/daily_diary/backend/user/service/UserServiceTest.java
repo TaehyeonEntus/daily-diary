@@ -13,8 +13,6 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import java.util.Optional;
-
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.BDDMockito.given;
@@ -32,16 +30,16 @@ class UserServiceTest {
     Cache<Long, String> refreshTokenCache;
 
 
-    // ─── getMe ────────────────────────────────────────────────────────────────
+    // ─── get ──────────────────────────────────────────────────────────────────
 
     @Test
-    void getMe_정상() {
+    void get_정상() {
         // given
         User user = User.of("testuser", "encoded", "닉네임");
-        given(userRepository.findById(1L)).willReturn(Optional.of(user));
+        given(userRepository.findOrThrow(1L)).willReturn(user);
 
         // when
-        UserDetailResponse response = userService.getMe(1L);
+        UserDetailResponse response = userService.get(1L);
 
         // then
         assertThat(response.username()).isEqualTo("testuser");
@@ -49,64 +47,64 @@ class UserServiceTest {
     }
 
     @Test
-    void getMe_없는_사용자_예외() {
+    void get_없는_사용자_예외() {
         // given
-        given(userRepository.findById(99L)).willReturn(Optional.empty());
+        given(userRepository.findOrThrow(99L)).willThrow(new UserNotFoundException());
 
         // when & then
-        assertThatThrownBy(() -> userService.getMe(99L))
+        assertThatThrownBy(() -> userService.get(99L))
                 .isInstanceOf(UserNotFoundException.class);
     }
 
-    // ─── updateMe ─────────────────────────────────────────────────────────────
+    // ─── update ───────────────────────────────────────────────────────────────
 
     @Test
-    void updateMe_정상() {
+    void update_정상() {
         // given
         User user = User.of("testuser", "encoded", "기존닉네임");
-        given(userRepository.findById(1L)).willReturn(Optional.of(user));
+        given(userRepository.findOrThrow(1L)).willReturn(user);
 
         // when
-        UserDetailResponse response = userService.updateMe(1L, new UserNicknameUpdateRequest("새닉네임"));
+        userService.update(1L, new UserNicknameUpdateRequest("새닉네임"));
 
         // then
-        assertThat(response.nickname()).isEqualTo("새닉네임");
+        assertThat(user.getNickname()).isEqualTo("새닉네임");
     }
 
     @Test
-    void updateMe_없는_사용자_예외() {
+    void update_없는_사용자_예외() {
         // given
-        given(userRepository.findById(99L)).willReturn(Optional.empty());
+        given(userRepository.findOrThrow(99L)).willThrow(new UserNotFoundException());
 
         // when & then
-        assertThatThrownBy(() -> userService.updateMe(99L, new UserNicknameUpdateRequest("닉네임")))
+        assertThatThrownBy(() -> userService.update(99L, new UserNicknameUpdateRequest("닉네임")))
                 .isInstanceOf(UserNotFoundException.class);
     }
 
-    // ─── deleteMe ─────────────────────────────────────────────────────────────
+    // ─── delete ───────────────────────────────────────────────────────────────
 
     @Test
-    void deleteMe_정상_캐시무효화후_DB삭제() {
+    void delete_정상_DB삭제후_캐시무효화() {
         // given
         User user = User.of("testuser", "encoded", "닉네임");
-        given(userRepository.findById(1L)).willReturn(Optional.of(user));
+        given(userRepository.findOrThrow(1L)).willReturn(user);
 
         // when
-        userService.deleteMe(1L);
+        userService.delete(1L);
 
         // then
-        InOrder inOrder = inOrder(refreshTokenCache, userRepository);
-        inOrder.verify(refreshTokenCache).invalidate(1L);
+        InOrder inOrder = inOrder(userRepository, refreshTokenCache);
         inOrder.verify(userRepository).delete(user);
+        inOrder.verify(refreshTokenCache).invalidate(1L);
     }
 
     @Test
-    void deleteMe_없는_사용자_예외() {
+    void delete_없는_사용자_예외() {
         // given
-        given(userRepository.findById(99L)).willReturn(Optional.empty());
+        given(userRepository.findOrThrow(99L)).willThrow(new UserNotFoundException());
 
         // when & then
-        assertThatThrownBy(() -> userService.deleteMe(99L))
+        assertThatThrownBy(() -> userService.delete(99L))
                 .isInstanceOf(UserNotFoundException.class);
     }
 }

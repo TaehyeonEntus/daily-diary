@@ -33,8 +33,7 @@ public class Comment extends BaseEntity {
     @OnDelete(action = OnDeleteAction.CASCADE)
     private User user;
 
-    @Column(nullable = false)
-    private long likeCount = 0;
+    // ─── 정적 생성자 ──────────────────────────────────────────────────────────
 
     public static Comment of(String content, Post post, User user) {
         Comment comment = new Comment();
@@ -43,6 +42,8 @@ public class Comment extends BaseEntity {
         comment.user = user;
         return comment;
     }
+
+    // ─── 변경자 ───────────────────────────────────────────────────────────────
 
     public void changeContent(String content) {
         this.content = content;

@@ -8,18 +8,14 @@ public record CommentDetailResponse(
         Long id,
         String content,
         String nickname,
-        long likeCount,
-        boolean likedByMe,
         LocalDateTime createdAt,
         LocalDateTime updatedAt
 ) {
-    public static CommentDetailResponse from(Comment comment, boolean likedByMe) {
+    public static CommentDetailResponse from(Comment comment) {
         return new CommentDetailResponse(
                 comment.getId(),
                 comment.getContent(),
                 comment.getUser().getNickname(),
-                comment.getLikeCount(),
-                likedByMe,
                 comment.getCreatedAt(),
                 comment.getUpdatedAt()
         );

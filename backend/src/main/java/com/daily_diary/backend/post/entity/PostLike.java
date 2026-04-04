@@ -30,6 +30,8 @@ public class PostLike extends BaseEntity {
     @OnDelete(action = OnDeleteAction.CASCADE)
     private User user;
 
+    // ─── 정적 생성자 ──────────────────────────────────────────────────────────
+
     public static PostLike of(Post post, User user) {
         PostLike like = new PostLike();
         like.post = post;

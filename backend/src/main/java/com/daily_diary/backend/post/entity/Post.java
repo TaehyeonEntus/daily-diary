@@ -10,7 +10,7 @@ import org.hibernate.annotations.OnDelete;
 import org.hibernate.annotations.OnDeleteAction;
 
 @Entity
-@Table(name = "posts")
+@Table(name = "posts", indexes = @Index(name = "idx_posts_created_at", columnList = "created_at"))
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class Post extends BaseEntity {
@@ -35,6 +35,8 @@ public class Post extends BaseEntity {
     @Column(nullable = false)
     private long likeCount = 0;
 
+    // ─── 정적 생성자 ──────────────────────────────────────────────────────────
+
     public static Post of(String title, String content, User user) {
         Post post = new Post();
         post.title = title;
@@ -42,6 +44,8 @@ public class Post extends BaseEntity {
         post.user = user;
         return post;
     }
+
+    // ─── 변경자 ───────────────────────────────────────────────────────────────
 
     public void changeTitle(String title) {
         this.title = title;

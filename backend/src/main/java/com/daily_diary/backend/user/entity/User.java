@@ -21,8 +21,10 @@ public class User extends BaseEntity {
     @Column(nullable = false)
     private String password;
 
-    @Column(nullable = false, length = 50)
+    @Column(nullable = false, length = 50, unique = true)
     private String nickname;
+
+    // ─── 정적 생성자 ──────────────────────────────────────────────────────────
 
     public static User of(String username, String password, String nickname) {
         User user = new User();
@@ -31,6 +33,8 @@ public class User extends BaseEntity {
         user.nickname = nickname;
         return user;
     }
+
+    // ─── 변경자 ───────────────────────────────────────────────────────────────
 
     public void changeNickname(String nickname) {
         this.nickname = nickname;

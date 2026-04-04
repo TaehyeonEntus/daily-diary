@@ -6,16 +6,19 @@ import org.springframework.security.core.userdetails.UserDetails;
 import java.util.Collection;
 import java.util.List;
 
-public record CustomUserDetails(Long userId) implements UserDetails {
+public record CustomUserDetails(Long userId, String username, String password) implements UserDetails {
+    public Long getUserId() {
+        return userId;
+    }
 
     @Override
     public String getUsername() {
-        return String.valueOf(userId);
+        return username;
     }
 
     @Override
     public String getPassword() {
-        return null;
+        return password;
     }
 
     @Override

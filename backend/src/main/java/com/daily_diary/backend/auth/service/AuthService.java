@@ -38,8 +38,7 @@ public class AuthService {
     }
 
     public Tokens login(LoginRequest request) {
-        CustomUserDetails customUserDetails = (CustomUserDetails) authenticate(request.username(), request.password()).getPrincipal();
-        Long userId = customUserDetails.userId();
+        Long userId = ((CustomUserDetails) authenticate(request.username(), request.password()).getPrincipal()).getUserId();
 
         String accessToken = jwtProvider.createAccessToken(userId);
         String refreshToken = jwtProvider.createRefreshToken(userId);
@@ -65,6 +64,8 @@ public class AuthService {
     public void logout(Long userId) {
         refreshTokenCache.invalidate(userId);
     }
+
+    // ─── private ──────────────────────────────────────────────────────────────
 
     private Authentication authenticate(String username, String password) {
         try {

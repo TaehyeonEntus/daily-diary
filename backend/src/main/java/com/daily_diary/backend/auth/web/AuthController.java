@@ -28,14 +28,18 @@ public class AuthController {
     @PostMapping("/signup")
     public ResponseEntity<Void> signup(
             @RequestBody @Valid SignupRequest request) {
+
         authService.signup(request);
+
         return ResponseEntity.status(HttpStatus.CREATED).build();
     }
 
     @PostMapping("/login")
     public ResponseEntity<LoginResponse> login(
             @RequestBody @Valid LoginRequest request) {
+
         Tokens result = authService.login(request);
+
         return ResponseEntity.ok()
                 .header(HttpHeaders.SET_COOKIE, buildRefreshTokenCookie(result.refreshToken()).toString())
                 .body(new LoginResponse(result.accessToken()));
@@ -44,7 +48,9 @@ public class AuthController {
     @PostMapping("/refresh")
     public ResponseEntity<RefreshResponse> refresh(
             @CookieValue("refreshToken") String refreshToken) {
+
         Tokens result = authService.refresh(refreshToken);
+
         return ResponseEntity.ok()
                 .header(HttpHeaders.SET_COOKIE, buildRefreshTokenCookie(result.refreshToken()).toString())
                 .body(new RefreshResponse(result.accessToken()));
@@ -53,11 +59,15 @@ public class AuthController {
     @DeleteMapping("/logout")
     public ResponseEntity<Void> logout(
             @AuthenticationPrincipal CustomUserDetails userDetails) {
-        authService.logout(userDetails.userId());
+
+        authService.logout(userDetails.getUserId());
+
         return ResponseEntity.noContent()
                 .header(HttpHeaders.SET_COOKIE, buildExpiredTokenCookie().toString())
                 .build();
     }
+
+    // ─── private ──────────────────────────────────────────────────────────────
 
     private ResponseCookie buildRefreshTokenCookie(String refreshToken) {
         return ResponseCookie.from("refreshToken", refreshToken)

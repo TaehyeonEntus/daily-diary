@@ -19,8 +19,8 @@ import java.time.LocalDateTime;
 import java.util.List;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.BDDMockito.willDoNothing;
 import static org.springframework.restdocs.mockmvc.MockMvcRestDocumentation.document;
@@ -68,32 +68,29 @@ class CommentControllerTest {
 
     @Test
     void list() throws Exception {
-        CommentListResponse response = new CommentListResponse(
-                List.of(new CommentSummaryResponse(1L, "댓글 내용", "홍길동", 2L, false, NOW)),
+        CommentPageResponse response = new CommentPageResponse(
+                List.of(new CommentSummaryResponse(1L, "댓글 내용", "홍길동", NOW)),
                 0, 20, 1L, 1
         );
-        given(commentService.list(eq(1L), isNull(), eq(0), eq(20))).willReturn(response);
+        given(commentService.getPage(eq(1L), anyInt(), anyInt())).willReturn(response);
 
         mockMvc.perform(get("/posts/{postId}/comments", 1L)
                         .param("page", "0")
                         .param("size", "20"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.content[0].id").value(1L))
-                .andExpect(jsonPath("$.content[0].likedByMe").value(false))
                 .andDo(document("comments/list",
                         pathParameters(
                                 parameterWithName("postId").description("게시글 ID")
                         ),
                         queryParameters(
-                                parameterWithName("page").description("페이지 번호 (기본값: 0)"),
-                                parameterWithName("size").description("페이지 크기 (기본값: 20)")
+                                parameterWithName("page").description("페이지 번호 (기본값: 0)").optional(),
+                                parameterWithName("size").description("페이지 크기 (기본값: 20)").optional()
                         ),
                         responseFields(
                                 fieldWithPath("content[].id").description("댓글 ID"),
                                 fieldWithPath("content[].content").description("댓글 내용"),
                                 fieldWithPath("content[].nickname").description("작성자 닉네임"),
-                                fieldWithPath("content[].likeCount").description("좋아요 수"),
-                                fieldWithPath("content[].likedByMe").description("내가 좋아요를 눌렀는지 여부"),
                                 fieldWithPath("content[].createdAt").description("작성 일시"),
                                 fieldWithPath("page").description("현재 페이지 번호"),
                                 fieldWithPath("size").description("페이지 크기"),
@@ -106,7 +103,8 @@ class CommentControllerTest {
     @Test
     void create() throws Exception {
         mockAuthUser();
-        willDoNothing().given(commentService).create(eq(1L), eq(1L), any());
+        CommentDetailResponse response = new CommentDetailResponse(1L, "댓글 내용", "홍길동", NOW, NOW);
+        given(commentService.create(eq(1L), eq(1L), any())).willReturn(response);
 
         mockMvc.perform(post("/posts/{postId}/comments", 1L)
                         .with(csrf())
@@ -114,12 +112,20 @@ class CommentControllerTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(new CreateCommentRequest("댓글 내용"))))
                 .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.id").value(1L))
                 .andDo(document("comments/create",
                         pathParameters(
                                 parameterWithName("postId").description("게시글 ID")
                         ),
                         requestFields(
                                 fieldWithPath("content").description("댓글 내용")
+                        ),
+                        responseFields(
+                                fieldWithPath("id").description("댓글 ID"),
+                                fieldWithPath("content").description("댓글 내용"),
+                                fieldWithPath("nickname").description("작성자 닉네임"),
+                                fieldWithPath("createdAt").description("작성 일시"),
+                                fieldWithPath("updatedAt").description("수정 일시")
                         )
                 ));
     }
@@ -148,16 +154,14 @@ class CommentControllerTest {
     @Test
     void update() throws Exception {
         mockAuthUser();
-        CommentDetailResponse response = new CommentDetailResponse(1L, "수정된 댓글", "홍길동", 0L, false, NOW, NOW);
-        given(commentService.update(eq(1L), eq(1L), any())).willReturn(response);
+        willDoNothing().given(commentService).update(eq(1L), eq(1L), any());
 
         mockMvc.perform(patch("/posts/{postId}/comments/{commentId}", 1L, 1L)
                         .with(csrf())
                         .header("Authorization", "Bearer access-token")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(new UpdateCommentRequest("수정된 댓글"))))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.content").value("수정된 댓글"))
+                .andExpect(status().isNoContent())
                 .andDo(document("comments/update",
                         pathParameters(
                                 parameterWithName("postId").description("게시글 ID"),
@@ -165,15 +169,6 @@ class CommentControllerTest {
                         ),
                         requestFields(
                                 fieldWithPath("content").description("수정할 댓글 내용")
-                        ),
-                        responseFields(
-                                fieldWithPath("id").description("댓글 ID"),
-                                fieldWithPath("content").description("댓글 내용"),
-                                fieldWithPath("nickname").description("작성자 닉네임"),
-                                fieldWithPath("likeCount").description("좋아요 수"),
-                                fieldWithPath("likedByMe").description("내가 좋아요를 눌렀는지 여부"),
-                                fieldWithPath("createdAt").description("작성 일시"),
-                                fieldWithPath("updatedAt").description("수정 일시")
                         )
                 ));
     }
@@ -188,40 +183,6 @@ class CommentControllerTest {
                         .header("Authorization", "Bearer access-token"))
                 .andExpect(status().isNoContent())
                 .andDo(document("comments/delete",
-                        pathParameters(
-                                parameterWithName("postId").description("게시글 ID"),
-                                parameterWithName("commentId").description("댓글 ID")
-                        )
-                ));
-    }
-
-    @Test
-    void like() throws Exception {
-        mockAuthUser();
-        willDoNothing().given(commentService).like(1L, 1L);
-
-        mockMvc.perform(post("/posts/{postId}/comments/{commentId}/likes", 1L, 1L)
-                        .with(csrf())
-                        .header("Authorization", "Bearer access-token"))
-                .andExpect(status().isCreated())
-                .andDo(document("comments/like",
-                        pathParameters(
-                                parameterWithName("postId").description("게시글 ID"),
-                                parameterWithName("commentId").description("댓글 ID")
-                        )
-                ));
-    }
-
-    @Test
-    void unlike() throws Exception {
-        mockAuthUser();
-        willDoNothing().given(commentService).unlike(1L, 1L);
-
-        mockMvc.perform(delete("/posts/{postId}/comments/{commentId}/likes", 1L, 1L)
-                        .with(csrf())
-                        .header("Authorization", "Bearer access-token"))
-                .andExpect(status().isNoContent())
-                .andDo(document("comments/unlike",
                         pathParameters(
                                 parameterWithName("postId").description("게시글 ID"),
                                 parameterWithName("commentId").description("댓글 ID")

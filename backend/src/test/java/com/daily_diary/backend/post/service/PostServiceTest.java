@@ -9,15 +9,8 @@ import com.daily_diary.backend.post.exception.PostNotFoundException;
 import com.daily_diary.backend.post.infra.PostLikeRepository;
 import com.daily_diary.backend.post.infra.PostQueryRepository;
 import com.daily_diary.backend.post.infra.PostRepository;
-import com.daily_diary.backend.post.web.CreatePostRequest;
-import com.daily_diary.backend.post.web.PostListResponse;
-import com.daily_diary.backend.post.web.PostDetailResponse;
-import com.daily_diary.backend.post.web.PostSearchCondition;
-import com.daily_diary.backend.post.web.PostSummaryResponse;
-import com.daily_diary.backend.post.web.SortType;
-import com.daily_diary.backend.post.web.UpdatePostRequest;
+import com.daily_diary.backend.post.web.*;
 import com.daily_diary.backend.user.entity.User;
-import com.daily_diary.backend.user.exception.UserNotFoundException;
 import com.daily_diary.backend.user.infra.UserRepository;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -55,6 +48,9 @@ class PostServiceTest {
     @Mock
     PostLikeRepository postLikeRepository;
 
+    @Mock
+    List<Long> hotPostsCache;
+
     private User createUser(Long id, String nickname) {
         User user = User.of("user" + id, "encoded", nickname);
         ReflectionTestUtils.setField(user, "id", id);
@@ -65,19 +61,22 @@ class PostServiceTest {
         return Post.of(title, content, user);
     }
 
-    // ─── search ───────────────────────────────────────────────────────────────
+    // ─── getList ──────────────────────────────────────────────────────────────
 
     @Test
-    void search_정상() {
+    void getList_정상() {
         // given
         User user = createUser(1L, "닉네임");
         Post post = createPost(user, "제목", "내용");
         ReflectionTestUtils.setField(post, "id", 1L);
-        given(postQueryRepository.search(any(PostSearchCondition.class), any(Pageable.class)))
+        given(postQueryRepository.getPage(any(PostSearchCondition.class), any(OrderType.class), any(Pageable.class)))
                 .willReturn(new PageImpl<>(List.of(PostSummaryResponse.from(post))));
 
         // when
-        PostListResponse response = postService.search(new PostSearchCondition(null, null, null, SortType.DATE), 0, 10);
+        PostPageResponse response = postService.getList(
+                new PostSearchCondition(SearchType.DEFAULT, null),
+                OrderType.DATE,
+                0, 10);
 
         // then
         assertThat(response.content()).hasSize(1);
@@ -85,17 +84,19 @@ class PostServiceTest {
     }
 
     @Test
-    void search_닉네임_필터() {
+    void getList_닉네임_필터() {
         // given
         User user = createUser(1L, "홍길동");
         Post post = createPost(user, "제목", "내용");
         ReflectionTestUtils.setField(post, "id", 1L);
-        PostSearchCondition condition = new PostSearchCondition("홍길동", null, null, SortType.DATE);
-        given(postQueryRepository.search(any(PostSearchCondition.class), any(Pageable.class)))
+        given(postQueryRepository.getPage(any(PostSearchCondition.class), any(OrderType.class), any(Pageable.class)))
                 .willReturn(new PageImpl<>(List.of(PostSummaryResponse.from(post))));
 
         // when
-        PostListResponse response = postService.search(condition, 0, 10);
+        PostPageResponse response = postService.getList(
+                new PostSearchCondition(SearchType.NICKNAME, "홍길동"),
+                OrderType.DATE,
+                0, 10);
 
         // then
         assertThat(response.content()).hasSize(1);
@@ -103,64 +104,52 @@ class PostServiceTest {
     }
 
     @Test
-    void search_정렬_VIEW() {
+    void getList_정렬_VIEW() {
         // given
-        PostSearchCondition condition = new PostSearchCondition(null, null, null, SortType.VIEW);
-        given(postQueryRepository.search(any(PostSearchCondition.class), any(Pageable.class)))
+        given(postQueryRepository.getPage(any(PostSearchCondition.class), any(OrderType.class), any(Pageable.class)))
                 .willReturn(new PageImpl<>(List.of()));
 
         // when
-        PostListResponse response = postService.search(condition, 0, 10);
+        PostPageResponse response = postService.getList(
+                new PostSearchCondition(SearchType.DEFAULT, null),
+                OrderType.VIEW,
+                0, 10);
 
         // then
         assertThat(response.content()).isEmpty();
-        ArgumentCaptor<PostSearchCondition> captor = ArgumentCaptor.forClass(PostSearchCondition.class);
-        verify(postQueryRepository).search(captor.capture(), any(Pageable.class));
-        assertThat(captor.getValue().sort()).isEqualTo(SortType.VIEW);
+        ArgumentCaptor<OrderType> captor = ArgumentCaptor.forClass(OrderType.class);
+        verify(postQueryRepository).getPage(any(PostSearchCondition.class), captor.capture(), any(Pageable.class));
+        assertThat(captor.getValue()).isEqualTo(OrderType.VIEW);
     }
 
-    // ─── getPost ──────────────────────────────────────────────────────────────
+    // ─── get ──────────────────────────────────────────────────────────────────
 
     @Test
-    void getPost_정상_비인증() {
+    void get_정상_비인증() {
         // given
-        User user = createUser(1L, "닉네임");
-        Post post = createPost(user, "제목", "내용");
-        given(postRepository.findById(1L)).willReturn(Optional.of(post));
+        PostDetailResponse detail = new PostDetailResponse(1L, "제목", "내용", "닉네임", 10L, 0L, false, null, null);
+        given(postQueryRepository.findPostDetail(1L, null)).willReturn(detail);
 
         // when
-        PostDetailResponse response = postService.getPost(1L, null);
+        PostDetailResponse response = postService.get(1L, null);
 
         // then
         assertThat(response.title()).isEqualTo("제목");
-        assertThat(response.likedByMe()).isFalse();
+        assertThat(response.like()).isFalse();
         verify(postRepository).increaseViewCount(1L);
-        assertThat(response.viewCount()).isEqualTo(1L);
     }
 
     @Test
-    void getPost_좋아요_누른_경우_likedByMe_true() {
+    void get_좋아요_누른_경우_likedByMe_true() {
         // given
-        User user = createUser(1L, "닉네임");
-        Post post = createPost(user, "제목", "내용");
-        given(postRepository.findById(1L)).willReturn(Optional.of(post));
-        given(postLikeRepository.existsByPostIdAndUserId(1L, 1L)).willReturn(true);
+        PostDetailResponse detail = new PostDetailResponse(1L, "제목", "내용", "닉네임", 10L, 0L, true, null, null);
+        given(postQueryRepository.findPostDetail(1L, 1L)).willReturn(detail);
 
         // when
-        PostDetailResponse response = postService.getPost(1L, 1L);
+        PostDetailResponse response = postService.get(1L, 1L);
 
         // then
-        assertThat(response.likedByMe()).isTrue();
-    }
-
-    @Test
-    void getPost_없는_게시글_예외() {
-        // given
-        given(postRepository.findById(99L)).willReturn(Optional.empty());
-
-        // when & then
-        assertThatThrownBy(() -> postService.getPost(99L, null))
-                .isInstanceOf(PostNotFoundException.class);
+        assertThat(response.like()).isTrue();
     }
 
     // ─── create ───────────────────────────────────────────────────────────────
@@ -169,28 +158,18 @@ class PostServiceTest {
     void create_정상() {
         // given
         User user = createUser(1L, "닉네임");
-        given(userRepository.findById(1L)).willReturn(Optional.of(user));
+        Post post = createPost(user, "제목", "내용");
+        ReflectionTestUtils.setField(post, "id", 1L);
+        given(userRepository.findOrThrow(1L)).willReturn(user);
+        given(postRepository.save(any(Post.class))).willReturn(post);
 
         // when
-        postService.create(1L, new CreatePostRequest("제목", "내용"));
+        PostDetailResponse response = postService.create(1L, new CreatePostRequest("제목", "내용"));
 
         // then
-        ArgumentCaptor<Post> captor = ArgumentCaptor.forClass(Post.class);
-        verify(postRepository).save(captor.capture());
-        Post saved = captor.getValue();
-        assertThat(saved.getTitle()).isEqualTo("제목");
-        assertThat(saved.getContent()).isEqualTo("내용");
-        assertThat(saved.getUser()).isEqualTo(user);
-    }
-
-    @Test
-    void create_없는_사용자_예외() {
-        // given
-        given(userRepository.findById(99L)).willReturn(Optional.empty());
-
-        // when & then
-        assertThatThrownBy(() -> postService.create(99L, new CreatePostRequest("제목", "내용")))
-                .isInstanceOf(UserNotFoundException.class);
+        assertThat(response.title()).isEqualTo("제목");
+        assertThat(response.content()).isEqualTo("내용");
+        assertThat(response.like()).isFalse();
     }
 
     // ─── update ───────────────────────────────────────────────────────────────
@@ -200,20 +179,20 @@ class PostServiceTest {
         // given
         User user = createUser(1L, "닉네임");
         Post post = createPost(user, "기존제목", "기존내용");
-        given(postRepository.findById(1L)).willReturn(Optional.of(post));
+        given(postRepository.findOrThrow(1L)).willReturn(post);
 
         // when
-        PostDetailResponse response = postService.update(1L, 1L, new UpdatePostRequest("수정제목", "수정내용"));
+        postService.update(1L, 1L, new UpdatePostRequest("수정제목", "수정내용"));
 
         // then
-        assertThat(response.title()).isEqualTo("수정제목");
-        assertThat(response.content()).isEqualTo("수정내용");
+        assertThat(post.getTitle()).isEqualTo("수정제목");
+        assertThat(post.getContent()).isEqualTo("수정내용");
     }
 
     @Test
     void update_없는_게시글_예외() {
         // given
-        given(postRepository.findById(99L)).willReturn(Optional.empty());
+        given(postRepository.findOrThrow(99L)).willThrow(new PostNotFoundException());
 
         // when & then
         assertThatThrownBy(() -> postService.update(1L, 99L, new UpdatePostRequest("제목", "내용")))
@@ -225,7 +204,7 @@ class PostServiceTest {
         // given
         User owner = createUser(1L, "작성자");
         Post post = createPost(owner, "제목", "내용");
-        given(postRepository.findById(1L)).willReturn(Optional.of(post));
+        given(postRepository.findOrThrow(1L)).willReturn(post);
 
         // when & then
         assertThatThrownBy(() -> postService.update(2L, 1L, new UpdatePostRequest("제목", "내용")))
@@ -240,7 +219,7 @@ class PostServiceTest {
         User user = createUser(1L, "닉네임");
         Post post = createPost(user, "제목", "내용");
         ReflectionTestUtils.setField(post, "id", 1L);
-        given(postRepository.findById(1L)).willReturn(Optional.of(post));
+        given(postRepository.findOrThrow(1L)).willReturn(post);
 
         // when
         postService.delete(1L, 1L);
@@ -252,7 +231,7 @@ class PostServiceTest {
     @Test
     void delete_없는_게시글_예외() {
         // given
-        given(postRepository.findById(99L)).willReturn(Optional.empty());
+        given(postRepository.findOrThrow(99L)).willThrow(new PostNotFoundException());
 
         // when & then
         assertThatThrownBy(() -> postService.delete(1L, 99L))
@@ -264,7 +243,7 @@ class PostServiceTest {
         // given
         User owner = createUser(1L, "작성자");
         Post post = createPost(owner, "제목", "내용");
-        given(postRepository.findById(1L)).willReturn(Optional.of(post));
+        given(postRepository.findOrThrow(1L)).willReturn(post);
 
         // when & then
         assertThatThrownBy(() -> postService.delete(2L, 1L))
@@ -276,10 +255,6 @@ class PostServiceTest {
     @Test
     void like_정상() {
         // given
-        User user = createUser(1L, "닉네임");
-        Post post = createPost(user, "제목", "내용");
-        given(postRepository.findById(1L)).willReturn(Optional.of(post));
-        given(userRepository.findById(1L)).willReturn(Optional.of(user));
         given(postLikeRepository.existsByPostIdAndUserId(1L, 1L)).willReturn(false);
 
         // when
@@ -291,22 +266,8 @@ class PostServiceTest {
     }
 
     @Test
-    void like_없는_게시글_예외() {
-        // given
-        given(postRepository.findById(99L)).willReturn(Optional.empty());
-
-        // when & then
-        assertThatThrownBy(() -> postService.like(1L, 99L))
-                .isInstanceOf(PostNotFoundException.class);
-    }
-
-    @Test
     void like_이미_좋아요_예외() {
         // given
-        User user = createUser(1L, "닉네임");
-        Post post = createPost(user, "제목", "내용");
-        given(postRepository.findById(1L)).willReturn(Optional.of(post));
-        given(userRepository.findById(1L)).willReturn(Optional.of(user));
         given(postLikeRepository.existsByPostIdAndUserId(1L, 1L)).willReturn(true);
 
         // when & then

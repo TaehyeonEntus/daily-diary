@@ -85,7 +85,7 @@ class AuthServiceTest {
     @Test
     void login_정상() {
         // given
-        CustomUserDetails userDetails = new CustomUserDetails(1L);
+        CustomUserDetails userDetails = new CustomUserDetails(1L, "testuser", "encoded");
         Authentication auth = new UsernamePasswordAuthenticationToken(userDetails, null);
 
         given(authenticationManager.authenticate(any())).willReturn(auth);

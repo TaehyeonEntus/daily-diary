@@ -3,8 +3,6 @@ package com.daily_diary.backend.global.exception;
 import com.daily_diary.backend.auth.exception.InvalidCredentialsException;
 import com.daily_diary.backend.auth.exception.InvalidTokenException;
 import com.daily_diary.backend.comment.exception.CommentAccessDeniedException;
-import com.daily_diary.backend.comment.exception.CommentLikeAlreadyExistsException;
-import com.daily_diary.backend.comment.exception.CommentLikeNotFoundException;
 import com.daily_diary.backend.comment.exception.CommentNotFoundException;
 import com.daily_diary.backend.post.exception.LikeAlreadyExistsException;
 import com.daily_diary.backend.post.exception.LikeNotFoundException;
@@ -67,16 +65,6 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(CommentAccessDeniedException.class)
     public ResponseEntity<Map<String, String>> handleCommentAccessDenied(CommentAccessDeniedException e) {
         return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Map.of("message", e.getMessage()));
-    }
-
-    @ExceptionHandler(CommentLikeAlreadyExistsException.class)
-    public ResponseEntity<Map<String, String>> handleCommentLikeAlreadyExists(CommentLikeAlreadyExistsException e) {
-        return ResponseEntity.status(HttpStatus.CONFLICT).body(Map.of("message", e.getMessage()));
-    }
-
-    @ExceptionHandler(CommentLikeNotFoundException.class)
-    public ResponseEntity<Map<String, String>> handleCommentLikeNotFound(CommentLikeNotFoundException e) {
-        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("message", e.getMessage()));
     }
 
     @ExceptionHandler(DuplicateUsernameException.class)
