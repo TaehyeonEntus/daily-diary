@@ -52,8 +52,8 @@ jobs:
           context: ./frontend
           push: true
           tags: |
-            ghcr.io/${{ github.repository_owner }}/daily-diary-frontend:latest
-            ghcr.io/${{ github.repository_owner }}/daily-diary-frontend:${{ github.sha }}
+            ghcr.io/${{ github.repository_owner | lower }}/daily-diary-frontend:latest
+            ghcr.io/${{ github.repository_owner | lower }}/daily-diary-frontend:${{ github.sha }}
 
   cd:
     runs-on: ubuntu-latest
