@@ -46,14 +46,16 @@ jobs:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Set lowercase owner
+        run: echo "OWNER=$(echo '${{ github.repository_owner }}' | tr '[:upper:]' '[:lower:]')" >> $GITHUB_ENV
       - name: Build and push Docker image
         uses: docker/build-push-action@v5
         with:
           context: ./frontend
           push: true
           tags: |
-            ghcr.io/${{ github.repository_owner | lower }}/daily-diary-frontend:latest
-            ghcr.io/${{ github.repository_owner | lower }}/daily-diary-frontend:${{ github.sha }}
+            ghcr.io/${{ env.OWNER }}/daily-diary-frontend:latest
+            ghcr.io/${{ env.OWNER }}/daily-diary-frontend:${{ github.sha }}
 
   cd:
     runs-on: ubuntu-latest
@@ -79,7 +81,6 @@ jobs:
           script: |
             cd ~/daily-diary/frontend
             echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
-            export GITHUB_REPOSITORY_OWNER=${{ github.repository_owner }}
             docker compose pull frontend
             docker compose up -d
             docker image prune -f

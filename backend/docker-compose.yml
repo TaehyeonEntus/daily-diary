@@ -15,7 +15,7 @@ services:
     restart: unless-stopped
 
   backend:
-    image: ghcr.io/${GITHUB_REPOSITORY_OWNER}/daily-diary-backend:latest
+    image: ghcr.io/taehyeonentus/daily-diary-backend:latest
     ports:
       - "8080:8080"
     environment:
