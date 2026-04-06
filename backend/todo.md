@@ -1,8 +1,9 @@
 코드리뷰 해야함.
 
-+ 인기글 캐시 어떻게 할지
-+ N+1 검사하기
-+ Cascade로 삭제 시 likeCount를 어떻게 처리할 것 인지? -> 
-+ 인기글 like count로 정렬 이후 createdAt 1일 걸고 검색.
-+ Post에 조회수 추가 및 원자적 연산으로 업데이트
-+ getOrThrow로 엔티티반환하는 메서드를 추가해야함
+리스트 줄 때 댓글 갯수도 같이 줘야겠다.
+
+조회 수, 좋아요 수, 댓글 개수
+
+이 중에서 좋아요 수랑 댓글 개수는 스케쥴링으로 정합 맞춰야함
+
+created_at이랑 view count랑 like count랑 comment count랑 인덱스 걸어야함

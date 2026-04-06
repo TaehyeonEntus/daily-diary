@@ -80,7 +80,7 @@ class UserControllerTest {
         mockAuthUser();
         willDoNothing().given(userService).update(eq(1L), any());
 
-        mockMvc.perform(patch("/users/me")
+        mockMvc.perform(patch("/users/me/nickname")
                         .with(csrf())
                         .header("Authorization", "Bearer access-token")
                         .contentType(MediaType.APPLICATION_JSON)

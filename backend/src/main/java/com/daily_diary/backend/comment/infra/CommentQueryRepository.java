@@ -1,6 +1,7 @@
 package com.daily_diary.backend.comment.infra;
 
 import com.daily_diary.backend.comment.web.CommentSummaryResponse;
+import com.querydsl.core.types.Projections;
 import com.querydsl.jpa.impl.JPAQueryFactory;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -20,16 +21,19 @@ public class CommentQueryRepository {
 
     public Page<CommentSummaryResponse> getPage(Long postId, Pageable pageable) {
         List<CommentSummaryResponse> content = queryFactory
-                .selectFrom(comment)
-                .join(comment.user).fetchJoin()
+                .select(Projections.constructor(CommentSummaryResponse.class,
+                        comment.id,
+                        comment.content,
+                        comment.user.nickname,
+                        comment.createdAt
+                ))
+                .from(comment)
+                .join(comment.user)
                 .where(comment.post.id.eq(postId))
-                .orderBy(comment.createdAt.asc())
+                .orderBy(comment.id.asc())
                 .offset(pageable.getOffset())
                 .limit(pageable.getPageSize())
-                .fetch()
-                .stream()
-                .map(CommentSummaryResponse::from)
-                .toList();
+                .fetch();
 
         Long total = queryFactory
                 .select(comment.count())

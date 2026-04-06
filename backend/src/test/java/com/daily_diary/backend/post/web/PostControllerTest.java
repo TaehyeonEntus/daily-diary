@@ -62,7 +62,7 @@ class PostControllerTest {
     @Test
     void list() throws Exception {
         PostPageResponse response = new PostPageResponse(
-                List.of(new PostSummaryResponse(1L, "첫 번째 게시글", "홍길동", 10L, 3L, NOW)),
+                List.of(new PostSummaryResponse(1L, "첫 번째 게시글", "홍길동", 10L, 3L, 0L, NOW)),
                 0, 10, 1L, 1
         );
         given(postService.getList(any(PostSearchCondition.class), any(OrderType.class), anyInt(), anyInt())).willReturn(response);
@@ -89,6 +89,7 @@ class PostControllerTest {
                                 fieldWithPath("content[].nickname").description("작성자 닉네임"),
                                 fieldWithPath("content[].viewCount").description("조회수"),
                                 fieldWithPath("content[].likeCount").description("좋아요 수"),
+                                fieldWithPath("content[].commentCount").description("댓글 수"),
                                 fieldWithPath("content[].createdAt").description("작성 일시"),
                                 fieldWithPath("page").description("현재 페이지 번호"),
                                 fieldWithPath("size").description("페이지 크기"),
@@ -101,7 +102,7 @@ class PostControllerTest {
     @Test
     void hotList() throws Exception {
         PostListResponse response = new PostListResponse(
-                List.of(new PostSummaryResponse(1L, "인기 게시글", "홍길동", 100L, 50L, NOW))
+                List.of(new PostSummaryResponse(1L, "인기 게시글", "홍길동", 100L, 50L, 0L, NOW))
         );
         given(postService.getHotList()).willReturn(response);
 
@@ -115,6 +116,7 @@ class PostControllerTest {
                                 fieldWithPath("content[].nickname").description("작성자 닉네임"),
                                 fieldWithPath("content[].viewCount").description("조회수"),
                                 fieldWithPath("content[].likeCount").description("좋아요 수"),
+                                fieldWithPath("content[].commentCount").description("댓글 수"),
                                 fieldWithPath("content[].createdAt").description("작성 일시")
                         )
                 ));
@@ -123,7 +125,7 @@ class PostControllerTest {
     @Test
     void getPost() throws Exception {
         mockAuthUser();
-        PostDetailResponse response = new PostDetailResponse(1L, "첫 번째 게시글", "내용입니다.", "홍길동", 10L, 5L, true, NOW, NOW);
+        PostDetailResponse response = new PostDetailResponse(1L, "첫 번째 게시글", "내용입니다.", "홍길동", 10L, 5L, 0L, true, NOW, NOW);
         given(postService.get(eq(1L), eq(1L))).willReturn(response);
 
         mockMvc.perform(get("/posts/{id}", 1L)
@@ -141,6 +143,7 @@ class PostControllerTest {
                                 fieldWithPath("nickname").description("작성자 닉네임"),
                                 fieldWithPath("viewCount").description("조회수"),
                                 fieldWithPath("likeCount").description("좋아요 수"),
+                                fieldWithPath("commentCount").description("댓글 수"),
                                 fieldWithPath("like").description("내가 좋아요를 눌렀는지 여부"),
                                 fieldWithPath("createdAt").description("작성 일시"),
                                 fieldWithPath("updatedAt").description("수정 일시")
@@ -151,7 +154,7 @@ class PostControllerTest {
     @Test
     void create() throws Exception {
         mockAuthUser();
-        PostDetailResponse response = new PostDetailResponse(1L, "제목", "내용", "닉네임", 0L, 0L, false, NOW, NOW);
+        PostDetailResponse response = new PostDetailResponse(1L, "제목", "내용", "닉네임", 0L, 0L, 0L, false, NOW, NOW);
         given(postService.create(eq(1L), any())).willReturn(response);
 
         mockMvc.perform(post("/posts")
@@ -173,6 +176,7 @@ class PostControllerTest {
                                 fieldWithPath("nickname").description("작성자 닉네임"),
                                 fieldWithPath("viewCount").description("조회수"),
                                 fieldWithPath("likeCount").description("좋아요 수"),
+                                fieldWithPath("commentCount").description("댓글 수"),
                                 fieldWithPath("like").description("내가 좋아요를 눌렀는지 여부"),
                                 fieldWithPath("createdAt").description("작성 일시"),
                                 fieldWithPath("updatedAt").description("수정 일시")

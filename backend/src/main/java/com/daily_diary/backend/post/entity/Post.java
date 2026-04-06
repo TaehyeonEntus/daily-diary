@@ -10,7 +10,11 @@ import org.hibernate.annotations.OnDelete;
 import org.hibernate.annotations.OnDeleteAction;
 
 @Entity
-@Table(name = "posts", indexes = @Index(name = "idx_posts_created_at", columnList = "created_at"))
+@Table(name = "posts", indexes = {
+        @Index(name = "idx_posts_like_count", columnList = "like_count"),
+        @Index(name = "idx_posts_view_count", columnList = "view_count"),
+        @Index(name = "idx_posts_comment_count", columnList = "comment_count")
+})
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class Post extends BaseEntity {
@@ -24,6 +28,9 @@ public class Post extends BaseEntity {
     @Column(nullable = false, columnDefinition = "TEXT")
     private String content;
 
+    @Column(nullable = false, length = 50)
+    private String author;
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id", nullable = false)
     @OnDelete(action = OnDeleteAction.CASCADE)
@@ -35,12 +42,16 @@ public class Post extends BaseEntity {
     @Column(nullable = false)
     private long likeCount = 0;
 
+    @Column(nullable = false)
+    private long commentCount = 0;
+
     // ─── 정적 생성자 ──────────────────────────────────────────────────────────
 
     public static Post of(String title, String content, User user) {
         Post post = new Post();
         post.title = title;
         post.content = content;
+        post.author = user.getNickname();
         post.user = user;
         return post;
     }
@@ -53,5 +64,9 @@ public class Post extends BaseEntity {
 
     public void changeContent(String content) {
         this.content = content;
+    }
+
+    public void changeAuthor(String author) {
+        this.author = author;
     }
 }

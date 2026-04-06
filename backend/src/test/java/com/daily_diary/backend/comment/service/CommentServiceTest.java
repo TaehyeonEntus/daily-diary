@@ -11,9 +11,7 @@ import com.daily_diary.backend.comment.web.CommentSummaryResponse;
 import com.daily_diary.backend.comment.web.CreateCommentRequest;
 import com.daily_diary.backend.comment.web.UpdateCommentRequest;
 import com.daily_diary.backend.post.entity.Post;
-import com.daily_diary.backend.post.exception.PostNotFoundException;
 import com.daily_diary.backend.post.infra.PostRepository;
-import com.daily_diary.backend.user.exception.UserNotFoundException;
 import com.daily_diary.backend.user.entity.User;
 import com.daily_diary.backend.user.infra.UserRepository;
 import org.junit.jupiter.api.Test;
@@ -58,8 +56,10 @@ class CommentServiceTest {
         return user;
     }
 
-    private Post createPost(User user) {
-        return Post.of("제목", "내용", user);
+    private Post createPost(Long id, User user) {
+        Post post = Post.of("제목", "내용", user);
+        ReflectionTestUtils.setField(post, "id", id);
+        return post;
     }
 
     // ─── getPage ──────────────────────────────────────────────────────────────
@@ -68,10 +68,9 @@ class CommentServiceTest {
     void getPage_정상() {
         // given
         User user = createUser(1L, "닉네임");
-        Post post = createPost(user);
+        Post post = createPost(1L, user);
         Comment comment = Comment.of("댓글", post, user);
         ReflectionTestUtils.setField(comment, "id", 1L);
-        given(postRepository.existsById(1L)).willReturn(true);
         given(commentQueryRepository.getPage(eq(1L), any(Pageable.class)))
                 .willReturn(new PageImpl<>(List.of(CommentSummaryResponse.from(comment))));
 
@@ -86,7 +85,6 @@ class CommentServiceTest {
     @Test
     void getPage_빈_목록() {
         // given
-        given(postRepository.existsById(1L)).willReturn(true);
         given(commentQueryRepository.getPage(eq(1L), any(Pageable.class)))
                 .willReturn(new PageImpl<>(List.of()));
 
@@ -98,27 +96,17 @@ class CommentServiceTest {
         assertThat(response.totalElements()).isZero();
     }
 
-    @Test
-    void getPage_없는_게시글_예외() {
-        // given
-        given(postRepository.existsById(99L)).willReturn(false);
-
-        // when & then
-        assertThatThrownBy(() -> commentService.getPage(99L, 0, 20))
-                .isInstanceOf(PostNotFoundException.class);
-    }
-
     // ─── create ───────────────────────────────────────────────────────────────
 
     @Test
     void create_정상() {
         // given
         User user = createUser(1L, "닉네임");
-        Post post = createPost(user);
+        Post post = createPost(1L, user);
         Comment comment = Comment.of("댓글 내용", post, user);
         ReflectionTestUtils.setField(comment, "id", 1L);
-        given(postRepository.findOrThrow(1L)).willReturn(post);
-        given(userRepository.findOrThrow(1L)).willReturn(user);
+        given(postRepository.getReferenceById(1L)).willReturn(post);
+        given(userRepository.getReferenceById(1L)).willReturn(user);
         given(commentRepository.save(any(Comment.class))).willReturn(comment);
 
         // when
@@ -127,29 +115,26 @@ class CommentServiceTest {
         // then
         assertThat(response.content()).isEqualTo("댓글 내용");
         assertThat(response.nickname()).isEqualTo("닉네임");
+        verify(postRepository).increaseCommentCount(1L);
     }
 
     @Test
-    void create_없는_게시글_예외() {
-        // given
-        given(postRepository.findOrThrow(99L)).willThrow(new PostNotFoundException());
-
-        // when & then
-        assertThatThrownBy(() -> commentService.create(99L, 1L, new CreateCommentRequest("내용")))
-                .isInstanceOf(PostNotFoundException.class);
-    }
-
-    @Test
-    void create_없는_사용자_예외() {
+    void create_increaseCommentCount_호출_검증() {
         // given
         User user = createUser(1L, "닉네임");
-        Post post = createPost(user);
-        given(postRepository.findOrThrow(1L)).willReturn(post);
-        given(userRepository.findOrThrow(99L)).willThrow(new UserNotFoundException());
+        Post post = createPost(1L, user);
+        Comment comment = Comment.of("댓글 내용", post, user);
+        ReflectionTestUtils.setField(comment, "id", 1L);
+        given(postRepository.getReferenceById(1L)).willReturn(post);
+        given(userRepository.getReferenceById(1L)).willReturn(user);
+        given(commentRepository.save(any(Comment.class))).willReturn(comment);
 
-        // when & then
-        assertThatThrownBy(() -> commentService.create(1L, 99L, new CreateCommentRequest("내용")))
-                .isInstanceOf(UserNotFoundException.class);
+        // when
+        commentService.create(1L, 1L, new CreateCommentRequest("댓글 내용"));
+
+        // then
+        verify(commentRepository).save(any(Comment.class));
+        verify(postRepository).increaseCommentCount(1L);
     }
 
     // ─── update ───────────────────────────────────────────────────────────────
@@ -158,7 +143,7 @@ class CommentServiceTest {
     void update_정상() {
         // given
         User user = createUser(1L, "닉네임");
-        Post post = createPost(user);
+        Post post = createPost(1L, user);
         Comment comment = Comment.of("기존내용", post, user);
         ReflectionTestUtils.setField(comment, "id", 1L);
         given(commentRepository.findOrThrow(1L)).willReturn(comment);
@@ -184,7 +169,7 @@ class CommentServiceTest {
     void update_작성자_아닌_사용자_예외() {
         // given
         User owner = createUser(1L, "작성자");
-        Post post = createPost(owner);
+        Post post = createPost(1L, owner);
         Comment comment = Comment.of("내용", post, owner);
         given(commentRepository.findOrThrow(1L)).willReturn(comment);
 
@@ -199,7 +184,7 @@ class CommentServiceTest {
     void delete_정상() {
         // given
         User user = createUser(1L, "닉네임");
-        Post post = createPost(user);
+        Post post = createPost(1L, user);
         Comment comment = Comment.of("내용", post, user);
         ReflectionTestUtils.setField(comment, "id", 1L);
         given(commentRepository.findOrThrow(1L)).willReturn(comment);
@@ -209,6 +194,7 @@ class CommentServiceTest {
 
         // then
         verify(commentRepository).delete(comment);
+        verify(postRepository).decreaseCommentCount(1L);
     }
 
     @Test
@@ -225,7 +211,7 @@ class CommentServiceTest {
     void delete_작성자_아닌_사용자_예외() {
         // given
         User owner = createUser(1L, "작성자");
-        Post post = createPost(owner);
+        Post post = createPost(1L, owner);
         Comment comment = Comment.of("내용", post, owner);
         given(commentRepository.findOrThrow(1L)).willReturn(comment);
 

@@ -22,11 +22,19 @@ public class UserController {
         return ResponseEntity.ok(userService.get(userDetails.getUserId()));
     }
 
-    @PatchMapping("/me")
-    public ResponseEntity<Void> updateMe(
+    @PatchMapping("/me/nickname")
+    public ResponseEntity<Void> updateNickname(
             @AuthenticationPrincipal CustomUserDetails userDetails,
             @Valid @RequestBody UserNicknameUpdateRequest request) {
         userService.update(userDetails.getUserId(), request);
+        return ResponseEntity.noContent().build();
+    }
+
+    @PatchMapping("/me/password")
+    public ResponseEntity<Void> updatePassword(
+            @AuthenticationPrincipal CustomUserDetails userDetails,
+            @Valid @RequestBody UserPasswordUpdateRequest request) {
+        userService.updatePassword(userDetails.getUserId(), request);
         return ResponseEntity.noContent().build();
     }
 

@@ -1,7 +1,5 @@
 package com.daily_diary.backend.post.web;
 
-import com.daily_diary.backend.post.entity.Post;
-
 import java.time.LocalDateTime;
 
 public record PostDetailResponse(
@@ -11,21 +9,9 @@ public record PostDetailResponse(
         String nickname,
         long viewCount,
         long likeCount,
+        long commentCount,
         boolean like,
         LocalDateTime createdAt,
         LocalDateTime updatedAt
 ) {
-    public static PostDetailResponse from(Post post, boolean like) {
-        return new PostDetailResponse(
-                post.getId(),
-                post.getTitle(),
-                post.getContent(),
-                post.getUser().getNickname(),
-                post.getViewCount(),
-                post.getLikeCount(),
-                like,
-                post.getCreatedAt(),
-                post.getUpdatedAt()
-        );
-    }
 }

@@ -9,6 +9,7 @@ import com.daily_diary.backend.post.exception.LikeNotFoundException;
 import com.daily_diary.backend.post.exception.PostAccessDeniedException;
 import com.daily_diary.backend.post.exception.PostNotFoundException;
 import com.daily_diary.backend.user.exception.DuplicateUsernameException;
+import com.daily_diary.backend.user.exception.InvalidPasswordException;
 import com.daily_diary.backend.user.exception.UserNotFoundException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -72,9 +73,19 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.CONFLICT).body(Map.of("message", e.getMessage()));
     }
 
+    @ExceptionHandler(InvalidPasswordException.class)
+    public ResponseEntity<Map<String, String>> handleInvalidPassword(InvalidPasswordException e) {
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of("message", e.getMessage()));
+    }
+
     @ExceptionHandler(MissingRequestCookieException.class)
     public ResponseEntity<Map<String, String>> handleMissingCookie(MissingRequestCookieException e) {
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Map.of("message", e.getMessage()));
+    }
+
+    @ExceptionHandler(BusinessException.class)
+    public ResponseEntity<Map<String, String>> handleBusiness(BusinessException e) {
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(Map.of("message", e.getMessage()));
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)

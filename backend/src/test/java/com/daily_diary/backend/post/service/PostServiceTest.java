@@ -66,11 +66,9 @@ class PostServiceTest {
     @Test
     void getList_정상() {
         // given
-        User user = createUser(1L, "닉네임");
-        Post post = createPost(user, "제목", "내용");
-        ReflectionTestUtils.setField(post, "id", 1L);
+        PostSummaryResponse summary = new PostSummaryResponse(1L, "제목", "닉네임", 0L, 0L, 0L, null);
         given(postQueryRepository.getPage(any(PostSearchCondition.class), any(OrderType.class), any(Pageable.class)))
-                .willReturn(new PageImpl<>(List.of(PostSummaryResponse.from(post))));
+                .willReturn(new PageImpl<>(List.of(summary)));
 
         // when
         PostPageResponse response = postService.getList(
@@ -86,11 +84,9 @@ class PostServiceTest {
     @Test
     void getList_닉네임_필터() {
         // given
-        User user = createUser(1L, "홍길동");
-        Post post = createPost(user, "제목", "내용");
-        ReflectionTestUtils.setField(post, "id", 1L);
+        PostSummaryResponse summary = new PostSummaryResponse(1L, "제목", "홍길동", 0L, 0L, 0L, null);
         given(postQueryRepository.getPage(any(PostSearchCondition.class), any(OrderType.class), any(Pageable.class)))
-                .willReturn(new PageImpl<>(List.of(PostSummaryResponse.from(post))));
+                .willReturn(new PageImpl<>(List.of(summary)));
 
         // when
         PostPageResponse response = postService.getList(
@@ -127,7 +123,7 @@ class PostServiceTest {
     @Test
     void get_정상_비인증() {
         // given
-        PostDetailResponse detail = new PostDetailResponse(1L, "제목", "내용", "닉네임", 10L, 0L, false, null, null);
+        PostDetailResponse detail = new PostDetailResponse(1L, "제목", "내용", "닉네임", 10L, 0L, 0L, false, null, null);
         given(postQueryRepository.findPostDetail(1L, null)).willReturn(detail);
 
         // when
@@ -142,7 +138,7 @@ class PostServiceTest {
     @Test
     void get_좋아요_누른_경우_likedByMe_true() {
         // given
-        PostDetailResponse detail = new PostDetailResponse(1L, "제목", "내용", "닉네임", 10L, 0L, true, null, null);
+        PostDetailResponse detail = new PostDetailResponse(1L, "제목", "내용", "닉네임", 10L, 0L, 0L, true, null, null);
         given(postQueryRepository.findPostDetail(1L, 1L)).willReturn(detail);
 
         // when

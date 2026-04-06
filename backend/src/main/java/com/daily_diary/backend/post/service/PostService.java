@@ -17,6 +17,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.concurrent.atomic.AtomicReference;
 
 @Service
 @RequiredArgsConstructor
@@ -27,14 +28,14 @@ public class PostService {
     private final PostQueryRepository postQueryRepository;
     private final UserRepository userRepository;
     private final PostLikeRepository postLikeRepository;
-    private final List<Long> hotPostsCache;
+    private final AtomicReference<List<Long>> hotPostsCache;
 
     @Transactional
     public PostDetailResponse create(Long userId, CreatePostRequest request) {
         User user = userRepository.findOrThrow(userId);
         Post post = postRepository.save(Post.of(request.title(), request.content(), user));
 
-        return PostDetailResponse.from(post, false);
+        return new PostDetailResponse(post.getId(), post.getTitle(), post.getContent(), post.getAuthor(), post.getViewCount(), 0, 0, false, post.getCreatedAt(), post.getUpdatedAt());
     }
 
     @Transactional
@@ -48,7 +49,10 @@ public class PostService {
     }
 
     public PostListResponse getHotList() {
-        return PostListResponse.from(postQueryRepository.findSummariesByIds(hotPostsCache));
+        List<Long> ids = hotPostsCache.get();
+        if (ids.isEmpty())
+            return PostListResponse.from(List.of());
+        return PostListResponse.from(postQueryRepository.findSummariesByIds(ids));
     }
 
     @Transactional
