@@ -59,7 +59,7 @@ export default function ProfilePage() {
     try {
       await usersApi.updateNickname({ nickname });
       startTransition(() => {
-        mutate({ ...user, nickname }, false);
+        mutate({ ...user, nickname });
       });
       alert('닉네임이 수정되었습니다.');
       setIsEditingNickname(false);

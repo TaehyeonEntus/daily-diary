@@ -16,9 +16,9 @@ client.interceptors.request.use((config) => {
 
 // 토큰 갱신 중 여부와 대기 중인 요청 큐
 let isRefreshing = false;
-let failedQueue: { resolve: (token: string) => void; reject: (error: any) => void }[] = [];
+let failedQueue: { resolve: (token: string) => void; reject: (error: unknown) => void }[] = [];
 
-const processQueue = (error: any, token: string | null = null) => {
+const processQueue = (error: unknown, token: string | null = null) => {
   failedQueue.forEach((prom) => {
     if (error) {
       prom.reject(error);
@@ -32,12 +32,20 @@ const processQueue = (error: any, token: string | null = null) => {
 // 응답 인터셉터: 401 에러 발생 시 토큰 갱신 시도
 client.interceptors.response.use(
   (response) => response,
-  async (error) => {
-    const originalRequest = error.config;
+  async (error: unknown) => {
+    const axiosError = error as { 
+      config: { 
+        _retry?: boolean; 
+        url?: string; 
+        headers?: { Authorization?: string };
+      }; 
+      response?: { status: number };
+    };
+    const originalRequest = axiosError.config;
 
     // 401 에러이고, 아직 재시도하지 않았으며, 로그인/회원가입/리프레시 요청이 아닌 경우에만 갱신 시도
     if (
-      error.response?.status === 401 && 
+      axiosError.response?.status === 401 && 
       !originalRequest._retry &&
       !originalRequest.url?.includes('/auth/login') &&
       !originalRequest.url?.includes('/auth/signup') &&
@@ -49,7 +57,9 @@ client.interceptors.response.use(
           failedQueue.push({ resolve, reject });
         })
           .then((token) => {
-            originalRequest.headers.Authorization = `Bearer ${token}`;
+            if (originalRequest.headers) {
+              originalRequest.headers.Authorization = `Bearer ${token}`;
+            }
             return client(originalRequest);
           })
           .catch((err) => Promise.reject(err));

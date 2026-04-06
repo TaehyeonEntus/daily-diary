@@ -45,8 +45,12 @@ export default function PostDetailPage() {
       mutate([`/posts`, postId], optimisticData, false);
     });
     try {
-      post.like ? await postsApi.unlike(postId) : await postsApi.like(postId);
-    } catch (_err) {
+      if (post.like) {
+        await postsApi.unlike(postId);
+      } else {
+        await postsApi.like(postId);
+      }
+    } catch {
       mutate([`/posts`, postId]);
     }
   };
@@ -61,7 +65,7 @@ export default function PostDetailPage() {
     });
     try {
       await postsApi.update(postId, editPostForm);
-    } catch (_err) {
+    } catch {
       mutate([`/posts`, postId]);
       alert('수정에 실패했습니다.');
     }
@@ -72,7 +76,7 @@ export default function PostDetailPage() {
     try {
       await postsApi.delete(postId);
       router.push('/');
-    } catch (_err) {
+    } catch {
       alert('삭제에 실패했습니다.');
     }
   };
@@ -94,7 +98,7 @@ export default function PostDetailPage() {
       if (post) {
         mutate([`/posts`, postId], { ...post, commentCount: post.commentCount + 1 }, false);
       }
-    } catch (err) {
+    } catch {
       mutate([`/posts/${postId}/comments`, commentPage]);
       alert('댓글 작성에 실패했습니다.');
     }
@@ -110,7 +114,7 @@ export default function PostDetailPage() {
     setEditingCommentId(null);
     try {
       await commentsApi.update(postId, commentId, { content: editCommentContent });
-    } catch (_err) {
+    } catch {
       mutate([`/posts/${postId}/comments`, commentPage]);
       alert('댓글 수정에 실패했습니다.');
     }
@@ -129,7 +133,7 @@ export default function PostDetailPage() {
     }
     try {
       await commentsApi.delete(postId, commentId);
-    } catch (_err) {
+    } catch {
       mutate([`/posts/${postId}/comments`, commentPage]);
       alert('댓글 삭제에 실패했습니다.');
     }

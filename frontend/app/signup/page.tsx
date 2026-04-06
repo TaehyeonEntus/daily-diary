@@ -26,8 +26,9 @@ export default function SignupPage() {
       await authApi.signup(formData);
       alert('회원가입이 완료되었습니다. 로그인해주세요!');
       router.push('/login');
-    } catch (err: any) {
-      setError(err.response?.data?.message || '회원가입에 실패했습니다. 다시 시도해주세요.');
+    } catch (err) {
+      const errorResponse = err as { response?: { data?: { message?: string } } };
+      setError(errorResponse.response?.data?.message || '회원가입에 실패했습니다. 다시 시도해주세요.');
     } finally {
       setIsLoading(false);
     }

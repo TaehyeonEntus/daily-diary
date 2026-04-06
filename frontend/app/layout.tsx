@@ -30,9 +30,9 @@ export default function RootLayout({
         <RootProvider>
           <header className="border-b sticky top-0 z-10" style={{ backgroundColor: 'var(--header-bg)', borderColor: 'var(--border-color)' }}>
             <div className="max-w-4xl mx-auto px-4 h-16 flex items-center justify-between">
-              <a href="/" className="text-xl font-bold hover:opacity-80 transition-opacity" style={{ color: 'var(--primary-color)' }}>
+              <Link href="/" className="text-xl font-bold hover:opacity-80 transition-opacity" style={{ color: 'var(--primary-color)' }}>
                 Daily Diary
-              </a>
+              </Link>
               <nav className="flex gap-6">
                 <Link href="/write" className="text-sm font-medium hover:opacity-80 transition-opacity" style={{ color: 'var(--text-main)' }}>
                   일기 쓰기

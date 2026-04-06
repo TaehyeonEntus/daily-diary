@@ -31,8 +31,9 @@ export default function WritePage() {
     try {
       await postsApi.create({ title, content });
       router.push('/');
-    } catch (err: any) {
-      alert(err.response?.data?.message || '일기 저장에 실패했습니다.');
+    } catch (err) {
+      const errorResponse = err as { response?: { data?: { message?: string } } };
+      alert(errorResponse.response?.data?.message || '일기 저장에 실패했습니다.');
     } finally {
       setIsLoading(false);
     }
