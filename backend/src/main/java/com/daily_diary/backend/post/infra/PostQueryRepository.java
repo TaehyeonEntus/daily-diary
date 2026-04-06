@@ -104,7 +104,7 @@ public class PostQueryRepository {
                 .from(post)
                 .where(post.createdAt.goe(since))
                 .orderBy(post.likeCount.desc(), post.id.desc())
-                .limit(3)
+                .limit(2)
                 .fetch();
     }
 
