@@ -91,6 +91,12 @@ include::{snippets}/users/update-me/http-request.adoc[]
 include::{snippets}/users/update-me/request-fields.adoc[]
 include::{snippets}/users/update-me/http-response.adoc[]
 
+=== 비밀번호 변경
+
+include::{snippets}/users/update-password/http-request.adoc[]
+include::{snippets}/users/update-password/request-fields.adoc[]
+include::{snippets}/users/update-password/http-response.adoc[]
+
 === 회원 탈퇴
 
 include::{snippets}/users/delete-me/http-request.adoc[]

@@ -2,10 +2,12 @@ package com.daily_diary.backend.user.service;
 
 import com.daily_diary.backend.post.infra.PostRepository;
 import com.daily_diary.backend.user.entity.User;
+import com.daily_diary.backend.user.exception.InvalidPasswordException;
 import com.daily_diary.backend.user.exception.UserNotFoundException;
 import com.daily_diary.backend.user.infra.UserRepository;
 import com.daily_diary.backend.user.web.UserDetailResponse;
 import com.daily_diary.backend.user.web.UserNicknameUpdateRequest;
+import com.daily_diary.backend.user.web.UserPasswordUpdateRequest;
 import com.github.benmanes.caffeine.cache.Cache;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -86,6 +88,35 @@ class UserServiceTest {
         // when & then
         assertThatThrownBy(() -> userService.update(99L, new UserNicknameUpdateRequest("닉네임")))
                 .isInstanceOf(UserNotFoundException.class);
+    }
+
+    // ─── updatePassword ───────────────────────────────────────────────────────
+
+    @Test
+    void updatePassword_정상() {
+        // given
+        User user = User.of("testuser", "encoded", "닉네임");
+        given(userRepository.findOrThrow(1L)).willReturn(user);
+        given(passwordEncoder.matches("currentPw123", "encoded")).willReturn(true);
+        given(passwordEncoder.encode("newPw456!")).willReturn("new-encoded");
+
+        // when
+        userService.updatePassword(1L, new UserPasswordUpdateRequest("currentPw123", "newPw456!"));
+
+        // then
+        assertThat(user.getPassword()).isEqualTo("new-encoded");
+    }
+
+    @Test
+    void updatePassword_현재_비밀번호_불일치_예외() {
+        // given
+        User user = User.of("testuser", "encoded", "닉네임");
+        given(userRepository.findOrThrow(1L)).willReturn(user);
+        given(passwordEncoder.matches("wrongPw", "encoded")).willReturn(false);
+
+        // when & then
+        assertThatThrownBy(() -> userService.updatePassword(1L, new UserPasswordUpdateRequest("wrongPw", "newPw456!")))
+                .isInstanceOf(InvalidPasswordException.class);
     }
 
     // ─── delete ───────────────────────────────────────────────────────────────

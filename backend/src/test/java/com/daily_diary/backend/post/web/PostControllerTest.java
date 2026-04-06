@@ -79,7 +79,7 @@ class PostControllerTest {
                         queryParameters(
                                 parameterWithName("searchType").description("검색 유형: DEFAULT(기본값), NICKNAME, TITLE, CONTENT").optional(),
                                 parameterWithName("keyword").description("검색어 (선택)").optional(),
-                                parameterWithName("orderType").description("정렬 기준: DATE(기본값), VIEW, LIKE").optional(),
+                                parameterWithName("orderType").description("정렬 기준: DATE(기본값), VIEW, LIKE, COMMENT").optional(),
                                 parameterWithName("page").description("페이지 번호 (기본값: 0)").optional(),
                                 parameterWithName("size").description("페이지 크기 (기본값: 20)").optional()
                         ),

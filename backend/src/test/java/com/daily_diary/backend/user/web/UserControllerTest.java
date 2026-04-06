@@ -94,6 +94,25 @@ class UserControllerTest {
     }
 
     @Test
+    void updatePassword() throws Exception {
+        mockAuthUser();
+        willDoNothing().given(userService).updatePassword(eq(1L), any());
+
+        mockMvc.perform(patch("/users/me/password")
+                        .with(csrf())
+                        .header("Authorization", "Bearer access-token")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(new UserPasswordUpdateRequest("currentPw123", "newPw456!"))))
+                .andExpect(status().isNoContent())
+                .andDo(document("users/update-password",
+                        requestFields(
+                                fieldWithPath("currentPassword").description("현재 비밀번호"),
+                                fieldWithPath("newPassword").description("변경할 새 비밀번호")
+                        )
+                ));
+    }
+
+    @Test
     void deleteMe() throws Exception {
         mockAuthUser();
         willDoNothing().given(userService).delete(1L);
